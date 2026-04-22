@@ -18,6 +18,11 @@ import org.springframework.web.server.WebFilter;
 @Configuration
 public class CorsConfig {
 
+    private static final String ALLOWED_HEADERS =
+            "Authorization, Content-Type, X-User-Id, X-User-Role, Accept, Origin, X-Requested-With";
+    private static final String ALLOWED_METHODS =
+            "GET, POST, PUT, PATCH, DELETE, OPTIONS";
+
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE)
     public WebFilter corsFilter() {
@@ -36,13 +41,20 @@ public class CorsConfig {
             ServerHttpResponse response = exchange.getResponse();
             HttpHeaders headers = response.getHeaders();
 
-            headers.setAccessControlAllowOrigin(origin);
-            headers.setAccessControlAllowCredentials(true);
-            headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS,
-                    "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-            headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "*");
+            // Remove any existing CORS headers to avoid duplicates
+            headers.remove(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN);
+            headers.remove(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS);
+            headers.remove(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS);
+            headers.remove(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS);
+            headers.remove(HttpHeaders.ACCESS_CONTROL_MAX_AGE);
+            headers.remove(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS);
+
+            headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+            headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+            headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, ALLOWED_METHODS);
+            headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, ALLOWED_HEADERS);
             headers.set(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "3600");
-            headers.set(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, "*");
+            headers.set(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, ALLOWED_HEADERS);
 
             if (request.getMethod() == HttpMethod.OPTIONS) {
                 response.setStatusCode(HttpStatus.OK);

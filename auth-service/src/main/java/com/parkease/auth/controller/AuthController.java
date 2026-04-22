@@ -12,6 +12,7 @@ import com.parkease.auth.dto.UserResponse;
 import com.parkease.auth.dto.VerifyOtpRequest;
 import com.parkease.auth.service.AuthService;
 import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -76,6 +77,13 @@ public class AuthController {
     public ResponseEntity<ApiMessageResponse> deactivate(Authentication authentication) {
         authService.deactivateAccount(authentication.getName());
         return ResponseEntity.ok(new ApiMessageResponse("Account deactivated successfully"));
+    }
+
+    @DeleteMapping("/account")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiMessageResponse> deleteAccount(Authentication authentication) {
+        authService.deleteAccount(authentication.getName());
+        return ResponseEntity.ok(new ApiMessageResponse("Account and all associated data deleted successfully"));
     }
 
     @PostMapping("/forgot-password")

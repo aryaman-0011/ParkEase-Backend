@@ -27,6 +27,8 @@ public interface AuthService {
 
     void deactivateAccount(String email);
 
+    void deleteAccount(String email);
+
     AuthResponse refreshToken(String currentToken);
 
     User upsertOAuthUser(AuthProvider provider, String providerId, String email, String fullName, String imageUrl, Role defaultRole);

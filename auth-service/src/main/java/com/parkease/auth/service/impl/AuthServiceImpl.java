@@ -24,6 +24,7 @@ import com.parkease.auth.service.JwtService;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -33,6 +34,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -124,6 +126,38 @@ public class AuthServiceImpl implements AuthService {
         User user = getActiveUserByEmail(email);
         user.setActive(false);
         userRepository.save(user);
+    }
+
+    @Override
+    public void deleteAccount(String email) {
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.getRole() == Role.ADMIN) {
+            throw new BadRequestException("Admin accounts cannot be deleted through self-service");
+        }
+
+        // If the user is a MANAGER, delete their parking lots from the parkinglot-service
+        if (user.getRole() == Role.MANAGER) {
+            try {
+                org.springframework.web.client.RestClient.create()
+                        .delete()
+                        .uri("http://localhost:8084/lots/manager/{managerId}", user.getId())
+                        .retrieve()
+                        .toBodilessEntity();
+                log.info("Deleted all parking lots for manager id={}", user.getId());
+            } catch (Exception ex) {
+                log.warn("Failed to delete parking lots for manager id={}: {}", user.getId(), ex.getMessage());
+                // Continue with account deletion even if lot cleanup fails
+            }
+        }
+
+        // Delete all OTPs associated with this user
+        otpRepository.deleteAllByEmailIgnoreCase(user.getEmail());
+
+        // Delete the user record
+        userRepository.deleteUserById(user.getId());
+        log.info("Account deleted for user email={}", email);
     }
 
     @Override

@@ -64,3 +64,33 @@ auth-service/.gitignore
 auth-service/src/main/resources/application.yaml
 auth-service/bin
 auth-service/src/main/resources/application-local-oauth.example.yaml
+
+### STS for parkinglot-service###
+parkinglot-service/.mvn
+parkinglot-service/.settings
+parkinglot-service/.classpath
+parkinglot-service/.gitattributes
+parkinglot-service/.project
+parkinglot-service/HELP.md
+parkinglot-service/mvnw
+parkinglot-service/mvnw.cmd
+parkinglot-service/target
+parkinglot-service/.factorypath
+parkinglot-service/.gitignore
+parkinglot-service/src/main/resources/application.yaml
+parkinglot-service/bin
+
+### STS for spot-service###
+spot-service/.mvn
+spot-service/.settings
+spot-service/.classpath
+spot-service/.gitattributes
+spot-service/.project
+spot-service/HELP.md
+spot-service/mvnw
+spot-service/mvnw.cmd
+spot-service/target
+spot-service/.factorypath
+spot-service/.gitignore
+spot-service/src/main/resources/application.yaml
+spot-service/bin
