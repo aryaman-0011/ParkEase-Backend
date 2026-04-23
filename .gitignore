@@ -109,3 +109,18 @@ booking-service/.factorypath
 booking-service/.gitignore
 booking-service/src/main/resources/application.yaml
 booking-service/bin
+
+### STS for payment-service###
+payment-service/.mvn
+payment-service/.settings
+payment-service/.classpath
+payment-service/.gitattributes
+payment-service/.project
+payment-service/HELP.md
+payment-service/mvnw
+payment-service/mvnw.cmd
+payment-service/target
+payment-service/.factorypath
+payment-service/.gitignore
+payment-service/src/main/resources/application.yaml
+payment-service/bin
