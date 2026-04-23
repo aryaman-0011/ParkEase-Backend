@@ -94,3 +94,18 @@ spot-service/.factorypath
 spot-service/.gitignore
 spot-service/src/main/resources/application.yaml
 spot-service/bin
+
+### STS for booking-service###
+booking-service/.mvn
+booking-service/.settings
+booking-service/.classpath
+booking-service/.gitattributes
+booking-service/.project
+booking-service/HELP.md
+booking-service/mvnw
+booking-service/mvnw.cmd
+booking-service/target
+booking-service/.factorypath
+booking-service/.gitignore
+booking-service/src/main/resources/application.yaml
+booking-service/bin
