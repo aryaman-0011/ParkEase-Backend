@@ -124,3 +124,18 @@ payment-service/.factorypath
 payment-service/.gitignore
 payment-service/src/main/resources/application.yaml
 payment-service/bin
+
+### STS for vehicle-service###
+vehicle-service/.mvn
+vehicle-service/.settings
+vehicle-service/.classpath
+vehicle-service/.gitattributes
+vehicle-service/.project
+vehicle-service/HELP.md
+vehicle-service/mvnw
+vehicle-service/mvnw.cmd
+vehicle-service/target
+vehicle-service/.factorypath
+vehicle-service/.gitignore
+vehicle-service/src/main/resources/application.yaml
+vehicle-service/bin

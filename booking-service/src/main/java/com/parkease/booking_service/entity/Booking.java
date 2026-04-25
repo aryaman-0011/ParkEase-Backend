@@ -32,12 +32,25 @@ public class Booking {
 
     private String vehiclePlate;
 
+    /** Links to vehicle-service vehicle */
+    private Long vehicleId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BookingStatus status;
 
+    /** User-chosen scheduled start time */
+    @Column(nullable = false)
+    private LocalDateTime scheduledStartTime;
+
+    /** User-chosen scheduled end time */
+    @Column(nullable = false)
+    private LocalDateTime scheduledEndTime;
+
+    /** Actual check-in time */
     private LocalDateTime startTime;
 
+    /** Actual check-out time */
     private LocalDateTime endTime;
 
     @Column(nullable = false)

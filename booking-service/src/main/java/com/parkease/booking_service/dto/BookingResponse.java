@@ -15,7 +15,10 @@ public class BookingResponse {
     private String lotName;
     private String spotNumber;
     private String vehiclePlate;
+    private Long vehicleId;
     private BookingStatus status;
+    private LocalDateTime scheduledStartTime;
+    private LocalDateTime scheduledEndTime;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private Double pricePerHour;
