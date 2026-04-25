@@ -5,6 +5,10 @@ import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * JPA entity representing a vehicle in the database.
+ * Maps to the vehicles table with owner, plate, and vehicle details.
+ */
 @Entity
 @Table(name = "vehicles")
 @Data

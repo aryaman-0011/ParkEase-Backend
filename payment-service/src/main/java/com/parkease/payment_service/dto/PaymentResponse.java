@@ -6,6 +6,10 @@ import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
 
+/**
+ * Response DTO representing a payment record returned to the client.
+ * Includes amount, method, status, transaction ID, and receipt number.
+ */
 @Data
 @Builder
 public class PaymentResponse {

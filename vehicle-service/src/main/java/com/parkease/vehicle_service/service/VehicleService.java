@@ -7,6 +7,10 @@ import com.parkease.vehicle_service.dto.VehicleResponse;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Service interface defining vehicle business operations.
+ * Includes register, update, delete, and listing methods.
+ */
 public interface VehicleService {
 
     VehicleResponse registerVehicle(RegisterVehicleRequest request);

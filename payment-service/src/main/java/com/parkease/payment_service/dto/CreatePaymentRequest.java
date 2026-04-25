@@ -4,6 +4,10 @@ import com.parkease.payment_service.enums.PaymentMethod;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+/**
+ * Request DTO for initiating a new payment.
+ * Contains booking, user, amount, and payment method information.
+ */
 @Data
 public class CreatePaymentRequest {
 

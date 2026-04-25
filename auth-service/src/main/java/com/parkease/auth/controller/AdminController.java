@@ -20,14 +20,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+// Admin-only endpoints for user management — list, update roles, suspend, delete users
 @RestController
 @RequestMapping("/auth/admin")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('ADMIN')") // All endpoints here require ADMIN role
 public class AdminController {
 
     private final AdminService adminService;
 
+    // List users with optional search, role filter, and pagination
     @GetMapping("/users")
     public ResponseEntity<UserPageResponse> listUsers(
             @RequestParam(required = false) String search,
@@ -37,11 +39,13 @@ public class AdminController {
         return ResponseEntity.ok(adminService.listUsers(search, role, page, size));
     }
 
+    // Get a specific user by their ID
     @GetMapping("/users/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
         return ResponseEntity.ok(adminService.getUserById(id));
     }
 
+    // Update a user's role (e.g. DRIVER -> MANAGER or ADMIN)
     @PutMapping("/users/{id}/role")
     public ResponseEntity<UserResponse> updateUserRole(
             @PathVariable Long id,
@@ -49,22 +53,26 @@ public class AdminController {
         return ResponseEntity.ok(adminService.updateUserRole(id, request));
     }
 
+    // Suspend a user account — prevents them from logging in
     @PutMapping("/users/{id}/suspend")
     public ResponseEntity<UserResponse> suspendUser(@PathVariable Long id) {
         return ResponseEntity.ok(adminService.suspendUser(id));
     }
 
+    // Reactivate a previously suspended or deactivated user
     @PutMapping("/users/{id}/activate")
     public ResponseEntity<UserResponse> reactivateUser(@PathVariable Long id) {
         return ResponseEntity.ok(adminService.reactivateUser(id));
     }
 
+    // Permanently delete a user account
     @DeleteMapping("/users/{id}")
     public ResponseEntity<ApiMessageResponse> deleteUser(@PathVariable Long id) {
         adminService.deleteUser(id);
         return ResponseEntity.ok(new ApiMessageResponse("User deleted successfully"));
     }
 
+    // Get dashboard stats — total users, active, suspended, by role counts
     @GetMapping("/stats")
     public ResponseEntity<UserStatsResponse> getUserStats() {
         return ResponseEntity.ok(adminService.getUserStats());

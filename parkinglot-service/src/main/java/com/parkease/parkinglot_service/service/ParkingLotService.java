@@ -5,6 +5,10 @@ import com.parkease.parkinglot_service.dto.LotResponse;
 import com.parkease.parkinglot_service.dto.UpdateLotRequest;
 import java.util.List;
 
+/**
+ * Service interface defining parking lot business operations.
+ * Includes CRUD, search, and availability management methods.
+ */
 public interface ParkingLotService {
 
     /* ───── Manager operations ───── */

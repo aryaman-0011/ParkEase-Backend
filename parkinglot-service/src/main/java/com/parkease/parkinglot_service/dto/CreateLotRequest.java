@@ -12,6 +12,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Request DTO for creating a new parking lot.
+ * Contains name, address, city, capacity, pricing, and manager info.
+ */
 @Getter
 @Setter
 @Builder

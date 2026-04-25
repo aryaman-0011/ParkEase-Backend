@@ -5,6 +5,10 @@ import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
 
+/**
+ * Response DTO representing a booking record returned to the client.
+ * Includes spot details, time-slot info, vehicle info, and calculated cost.
+ */
 @Data
 @Builder
 public class BookingResponse {

@@ -9,6 +9,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Request DTO for updating an existing parking lot.
+ * All fields are optional; only provided fields are updated.
+ */
 @Getter
 @Setter
 @Builder

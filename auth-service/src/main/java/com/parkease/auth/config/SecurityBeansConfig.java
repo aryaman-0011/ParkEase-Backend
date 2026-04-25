@@ -11,17 +11,20 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+// Provides security beans — password encoder, authentication provider, and auth manager
 @Configuration
 @RequiredArgsConstructor
 public class SecurityBeansConfig {
 
     private final CustomUserDetailsService userDetailsService;
 
+    // BCrypt password encoder — used for hashing passwords on registration and verifying on login
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    // DAO-based auth provider — loads user from DB via CustomUserDetailsService and verifies password
     @Bean
     public AuthenticationProvider authenticationProvider(PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
@@ -29,6 +32,7 @@ public class SecurityBeansConfig {
         return provider;
     }
 
+    // Auth manager — used by login endpoint to authenticate credentials
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();

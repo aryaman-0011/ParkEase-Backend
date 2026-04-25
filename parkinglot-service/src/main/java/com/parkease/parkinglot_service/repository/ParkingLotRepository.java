@@ -9,6 +9,10 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/**
+ * Spring Data JPA repository for ParkingLot entities.
+ * Contains custom queries for filtering lots by manager, city, or name.
+ */
 public interface ParkingLotRepository extends JpaRepository<ParkingLot, Long> {
 
     /* ───── Driver-facing queries ───── */

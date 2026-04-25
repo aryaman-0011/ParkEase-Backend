@@ -10,6 +10,10 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
+/**
+ * JPA entity representing a parking spot in the database.
+ * Maps to the parking_spots table with type, status, and pricing.
+ */
 @Entity
 @Table(name = "parking_spots",
         uniqueConstraints = @UniqueConstraint(columnNames = {"lot_id", "spot_number"}))

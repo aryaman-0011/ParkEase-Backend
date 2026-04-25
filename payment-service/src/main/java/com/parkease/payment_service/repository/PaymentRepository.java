@@ -9,6 +9,10 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Spring Data JPA repository for Payment entities.
+ * Contains queries for user payments, booking payments, and revenue aggregation.
+ */
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     Optional<Payment> findByBookingId(Long bookingId);

@@ -10,6 +10,10 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Centralized exception handler using ControllerAdvice.
+ * Converts exceptions into structured HTTP error responses.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

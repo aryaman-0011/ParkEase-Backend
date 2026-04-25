@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Generic API response DTO containing a simple message string.
+ */
 @Getter
 @Setter
 @Builder

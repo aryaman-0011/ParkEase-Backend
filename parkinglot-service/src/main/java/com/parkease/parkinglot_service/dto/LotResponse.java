@@ -9,6 +9,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Response DTO representing a parking lot returned to the client.
+ * Includes lot details, availability counts, and operational status.
+ */
 @Getter
 @Setter
 @Builder

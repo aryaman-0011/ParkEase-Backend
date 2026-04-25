@@ -15,6 +15,10 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Implementation of VehicleService with vehicle management logic.
+ * Handles validation, duplicate plate detection, and owner verification.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j

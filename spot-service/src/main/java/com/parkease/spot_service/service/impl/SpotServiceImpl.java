@@ -17,6 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Implementation of SpotService with spot management logic.
+ * Syncs availability counts with the Parking Lot service after status changes.
+ */
 @Service
 @RequiredArgsConstructor
 public class SpotServiceImpl implements SpotService {

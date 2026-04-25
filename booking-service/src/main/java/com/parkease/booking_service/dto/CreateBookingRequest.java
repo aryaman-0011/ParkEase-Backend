@@ -4,6 +4,10 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import java.time.LocalDateTime;
 
+/**
+ * Request DTO for creating a new time-slot booking.
+ * Contains user, spot, vehicle, and scheduled start/end time information.
+ */
 @Data
 public class CreateBookingRequest {
 

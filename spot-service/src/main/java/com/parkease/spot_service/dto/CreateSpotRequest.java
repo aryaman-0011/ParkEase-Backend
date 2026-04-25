@@ -7,6 +7,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+/**
+ * Request DTO for creating a single parking spot.
+ * Contains spot number, type, floor, vehicle type, and pricing.
+ */
 @Data
 public class CreateSpotRequest {
 

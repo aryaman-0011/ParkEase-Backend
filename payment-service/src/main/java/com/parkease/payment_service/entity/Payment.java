@@ -6,6 +6,10 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+/**
+ * JPA entity representing a payment record in the database.
+ * Maps to the payments table with amount, method, status, and timestamps.
+ */
 @Entity
 @Table(name = "payments")
 @Data

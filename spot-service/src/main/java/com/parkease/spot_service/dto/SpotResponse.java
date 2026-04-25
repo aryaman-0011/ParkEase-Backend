@@ -9,6 +9,10 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * Response DTO representing a parking spot returned to the client.
+ * Includes spot details, status, pricing, and feature flags.
+ */
 @Data
 @Builder
 public class SpotResponse {

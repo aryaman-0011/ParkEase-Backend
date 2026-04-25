@@ -52,6 +52,13 @@
             <artifactId>reactor-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Swagger / OpenAPI aggregation -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+            <version>3.0.0</version>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>

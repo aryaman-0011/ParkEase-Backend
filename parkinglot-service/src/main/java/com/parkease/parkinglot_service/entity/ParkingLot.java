@@ -17,6 +17,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * JPA entity representing a parking lot in the database.
+ * Maps to the parking_lots table with capacity, pricing, and location data.
+ */
 @Getter
 @Setter
 @Builder

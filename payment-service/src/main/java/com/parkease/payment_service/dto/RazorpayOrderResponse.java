@@ -3,6 +3,10 @@ package com.parkease.payment_service.dto;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * Response DTO for a created Razorpay order.
+ * Contains order ID, amount, currency, and Razorpay key for frontend checkout.
+ */
 @Data
 @Builder
 public class RazorpayOrderResponse {

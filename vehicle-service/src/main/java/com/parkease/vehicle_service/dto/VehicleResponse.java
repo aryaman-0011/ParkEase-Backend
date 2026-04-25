@@ -5,6 +5,10 @@ import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * Response DTO representing a vehicle returned to the client.
+ * Includes license plate, make/model, color, and owner information.
+ */
 @Data
 @Builder
 public class VehicleResponse {

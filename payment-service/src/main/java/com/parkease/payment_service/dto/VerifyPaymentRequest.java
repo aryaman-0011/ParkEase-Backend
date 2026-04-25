@@ -4,6 +4,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+/**
+ * Request DTO for verifying a Razorpay payment after checkout.
+ * Contains order ID, payment ID, and cryptographic signature for validation.
+ */
 @Data
 public class VerifyPaymentRequest {
 

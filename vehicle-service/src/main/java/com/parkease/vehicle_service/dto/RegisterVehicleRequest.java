@@ -4,6 +4,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+/**
+ * Request DTO for registering a new vehicle.
+ * Contains license plate, make, model, color, and vehicle type.
+ */
 @Data
 public class RegisterVehicleRequest {
 

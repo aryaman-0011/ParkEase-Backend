@@ -5,6 +5,10 @@ import com.parkease.payment_service.dto.PaymentResponse;
 import com.parkease.payment_service.dto.RevenueResponse;
 import java.util.List;
 
+/**
+ * Service interface defining payment business operations.
+ * Includes payment creation, Razorpay order/verify, and revenue queries.
+ */
 public interface PaymentService {
 
     PaymentResponse createPayment(CreatePaymentRequest request);

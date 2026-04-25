@@ -11,6 +11,10 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
+/**
+ * Spring Data JPA repository for ParkingSpot entities.
+ * Contains queries for filtering by lot, status, and availability counts.
+ */
 public interface SpotRepository extends JpaRepository<ParkingSpot, Long> {
 
     /* ───── Query by lot ───── */

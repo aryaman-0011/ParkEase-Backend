@@ -6,6 +6,10 @@ import com.parkease.spot_service.enums.VehicleType;
 
 import java.util.List;
 
+/**
+ * Service interface defining parking spot business operations.
+ * Includes CRUD, status transitions, and count aggregations.
+ */
 public interface SpotService {
 
     /* ───── CRUD ───── */

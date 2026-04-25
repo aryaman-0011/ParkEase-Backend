@@ -6,6 +6,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Centralized exception handler using ControllerAdvice.
+ * Converts exceptions into structured HTTP error responses.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
