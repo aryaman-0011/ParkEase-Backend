@@ -6,6 +6,7 @@ import com.parkease.vehicle_service.dto.VehicleResponse;
 import com.parkease.vehicle_service.service.VehicleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 // REST controller for vehicle management — register, update, delete, lookup by plate/type/EV
+@Slf4j
 @RestController
 @RequestMapping("/vehicles")
 @RequiredArgsConstructor

@@ -51,7 +51,11 @@ public class SecurityConfig {
                                 // Swagger / OpenAPI docs — must be publicly accessible
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html")
+                                "/swagger-ui.html",
+                                // Internal endpoints — called by other services (no JWT)
+                                "/auth/internal/**",
+                                // Uploaded avatar images — served publicly
+                                "/avatars/**")
                         .permitAll()
                         // Admin endpoints require ADMIN role
                         .requestMatchers("/auth/admin/**").hasRole("ADMIN")

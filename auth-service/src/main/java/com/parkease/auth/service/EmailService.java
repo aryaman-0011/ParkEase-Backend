@@ -5,4 +5,8 @@ public interface EmailService {
     void sendOtpEmail(String toEmail, String otp);
 
     void sendLoginNotificationEmail(String toEmail, String fullName, String loginMethod);
+
+    void sendWelcomeEmail(String toEmail, String fullName);
+
+    void sendReceiptEmail(String toEmail, String fullName, java.util.Map<String, String> receiptDetails);
 }

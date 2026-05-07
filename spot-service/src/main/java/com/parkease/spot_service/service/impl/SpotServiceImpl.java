@@ -11,6 +11,7 @@ import com.parkease.spot_service.exception.ResourceNotFoundException;
 import com.parkease.spot_service.repository.SpotRepository;
 import com.parkease.spot_service.service.SpotService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ import java.util.List;
  * Implementation of SpotService with spot management logic.
  * Syncs availability counts with the Parking Lot service after status changes.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SpotServiceImpl implements SpotService {
@@ -47,6 +49,7 @@ public class SpotServiceImpl implements SpotService {
                 .status(SpotStatus.AVAILABLE)
                 .build();
         SpotResponse response = SpotResponse.from(spotRepository.save(spot));
+        log.info("Spot created: id={} lot={} number={}", response.getSpotId(), req.getLotId(), req.getSpotNumber());
         lotSyncClient.syncCounts(req.getLotId());
         return response;
     }
@@ -79,6 +82,7 @@ public class SpotServiceImpl implements SpotService {
         List<SpotResponse> result = spotRepository.saveAll(spots).stream()
                 .map(SpotResponse::from)
                 .toList();
+        log.info("Bulk created {} spots for lot={}", result.size(), req.getLotId());
         lotSyncClient.syncCounts(req.getLotId());
         return result;
     }
@@ -108,6 +112,7 @@ public class SpotServiceImpl implements SpotService {
     @Override
     @Transactional
     public void deleteSpot(Long spotId) {
+        log.warn("Deleting spot id={}", spotId);
         ParkingSpot spot = findSpotOrThrow(spotId);
         Long lotId = spot.getLotId();
         spotRepository.deleteById(spotId);
@@ -179,6 +184,7 @@ public class SpotServiceImpl implements SpotService {
                     " is not available (current: " + spot.getStatus() + ")");
         }
         spot.setStatus(SpotStatus.RESERVED);
+        log.info("Spot reserved: id={} number={}", spotId, spot.getSpotNumber());
         SpotResponse response = SpotResponse.from(spotRepository.save(spot));
         lotSyncClient.syncCounts(spot.getLotId());
         return response;
@@ -193,6 +199,7 @@ public class SpotServiceImpl implements SpotService {
                     " must be RESERVED before occupying (current: " + spot.getStatus() + ")");
         }
         spot.setStatus(SpotStatus.OCCUPIED);
+        log.info("Spot occupied: id={} number={}", spotId, spot.getSpotNumber());
         SpotResponse response = SpotResponse.from(spotRepository.save(spot));
         lotSyncClient.syncCounts(spot.getLotId());
         return response;
@@ -206,6 +213,7 @@ public class SpotServiceImpl implements SpotService {
             throw new BadRequestException("Spot " + spot.getSpotNumber() + " is already available");
         }
         spot.setStatus(SpotStatus.AVAILABLE);
+        log.info("Spot released: id={} number={}", spotId, spot.getSpotNumber());
         SpotResponse response = SpotResponse.from(spotRepository.save(spot));
         lotSyncClient.syncCounts(spot.getLotId());
         return response;
@@ -218,6 +226,7 @@ public class SpotServiceImpl implements SpotService {
     @Override
     @Transactional
     public void deleteAllSpotsByLot(Long lotId) {
+        log.warn("Deleting all spots for lot id={}", lotId);
         spotRepository.deleteAllByLotId(lotId);
         lotSyncClient.syncCounts(lotId);
     }

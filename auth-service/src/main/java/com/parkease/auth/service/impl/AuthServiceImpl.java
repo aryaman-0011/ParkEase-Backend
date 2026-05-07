@@ -42,6 +42,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordResetOtpRepository otpRepository;
+    private final RedisOtpService redisOtpService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -58,18 +59,34 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Email is already registered");
         }
 
+        Role role = request.getRole() == null ? Role.DRIVER : request.getRole();
+
+        // Manager accounts require business details
+        if (role == Role.MANAGER) {
+            if (request.getBusinessName() == null || request.getBusinessName().isBlank()) {
+                throw new BadRequestException("Business name is required for manager accounts");
+            }
+            if (request.getBusinessRegistration() == null || request.getBusinessRegistration().isBlank()) {
+                throw new BadRequestException("Business registration number is required for manager accounts");
+            }
+        }
+
         User user = User.builder()
                 .fullName(request.getFullName().trim())
                 .email(request.getEmail().trim().toLowerCase())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .phone(request.getPhone())
-                .role(request.getRole() == null ? Role.DRIVER : request.getRole())
+                .role(role)
                 .vehiclePlate(request.getVehiclePlate())
+                .businessName(request.getBusinessName())
+                .businessRegistration(request.getBusinessRegistration())
                 .provider(AuthProvider.LOCAL)
                 .active(true)
                 .build();
 
         User savedUser = userRepository.save(user);
+        log.info("User registered: email={} role={}", savedUser.getEmail(), savedUser.getRole());
+        emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getFullName());
         return toAuthResponse(savedUser, false);
     }
 
@@ -152,8 +169,8 @@ public class AuthServiceImpl implements AuthService {
             }
         }
 
-        // Delete all OTPs associated with this user
-        otpRepository.deleteAllByEmailIgnoreCase(user.getEmail());
+        // Delete all OTPs associated with this user (Redis)
+        redisOtpService.deleteAllForEmail(user.getEmail());
 
         // Delete the user record
         userRepository.deleteUserById(user.getId());
@@ -210,62 +227,35 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException("Password reset is not available for social-login accounts. Please use " + user.getProvider().name() + " to login.");
         }
 
-        // Rate limiting: check if an OTP was sent within the last 60 seconds
-        otpRepository.findTopByEmailIgnoreCaseAndUsedFalseOrderByCreatedAtDesc(email)
-                .ifPresent(lastOtp -> {
-                    if (lastOtp.getCreatedAt().plusSeconds(60).isAfter(LocalDateTime.now())) {
-                        throw new BadRequestException("Please wait 60 seconds before requesting a new OTP");
-                    }
-                });
-
-        // Invalidate all previous OTPs for this email
-        otpRepository.invalidateAllByEmail(email);
-        otpRepository.flush();
+        // Rate limiting: check if an OTP was sent within the last 60 seconds (Redis TTL)
+        if (redisOtpService.isRateLimited(email)) {
+            throw new BadRequestException("Please wait 60 seconds before requesting a new OTP");
+        }
 
         // Generate 6-digit OTP
         String otp = String.format("%06d", SECURE_RANDOM.nextInt(1000000));
 
-        PasswordResetOtp otpEntity = PasswordResetOtp.builder()
-                .email(email)
-                .otp(otp)
-                .expiresAt(LocalDateTime.now().plusMinutes(otpExpirationMinutes))
-                .used(false)
-                .build();
-        otpRepository.save(otpEntity);
-        otpRepository.flush();
+        // Store in Redis with TTL-based expiration (auto-deletes after expiry)
+        redisOtpService.storeOtp(email, otp, otpExpirationMinutes);
 
-        // Send email after transaction commits to ensure OTP is persisted
-        org.springframework.transaction.support.TransactionSynchronizationManager
-                .registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        emailService.sendOtpEmail(email, otp);
-                    }
-                });
+        // Send OTP email
+        emailService.sendOtpEmail(email, otp);
     }
 
     @Override
     @Transactional(readOnly = true)
     public void verifyOtp(VerifyOtpRequest request) {
         String email = request.getEmail().trim().toLowerCase();
-        PasswordResetOtp otp = otpRepository
-                .findTopByEmailIgnoreCaseAndOtpAndUsedFalseOrderByCreatedAtDesc(email, request.getOtp())
-                .orElseThrow(() -> new BadRequestException("Invalid OTP"));
-
-        if (otp.isExpired()) {
-            throw new BadRequestException("OTP has expired. Please request a new one.");
+        if (!redisOtpService.validateOtp(email, request.getOtp())) {
+            throw new BadRequestException("Invalid or expired OTP");
         }
     }
 
     @Override
     public void resetPassword(ResetPasswordRequest request) {
         String email = request.getEmail().trim().toLowerCase();
-        PasswordResetOtp otp = otpRepository
-                .findTopByEmailIgnoreCaseAndOtpAndUsedFalseOrderByCreatedAtDesc(email, request.getOtp())
-                .orElseThrow(() -> new BadRequestException("Invalid OTP"));
-
-        if (otp.isExpired()) {
-            throw new BadRequestException("OTP has expired. Please request a new one.");
+        if (!redisOtpService.validateOtp(email, request.getOtp())) {
+            throw new BadRequestException("Invalid or expired OTP");
         }
 
         User user = userRepository.findByEmailIgnoreCase(email)
@@ -278,9 +268,8 @@ public class AuthServiceImpl implements AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
-        // Mark OTP as used
-        otp.setUsed(true);
-        otpRepository.save(otp);
+        // Consume the OTP so it can't be reused
+        redisOtpService.invalidateOtp(email);
     }
 
     private User getActiveUserByEmail(String email) {

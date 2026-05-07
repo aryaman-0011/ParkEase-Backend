@@ -38,4 +38,10 @@ public class RegisterRequest {
 
     @Size(max = 20)
     private String vehiclePlate;
+
+    @Size(max = 150)
+    private String businessName;
+
+    @Size(max = 50)
+    private String businessRegistration;
 }

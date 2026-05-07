@@ -2,6 +2,7 @@ package com.parkease.auth.security;
 
 import com.parkease.auth.service.JwtService;
 import com.parkease.auth.service.impl.CustomUserDetailsService;
+import com.parkease.auth.service.impl.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +25,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -39,6 +41,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Extract the JWT token (strip "Bearer " prefix)
         String token = authHeader.substring(7);
+
+        // Check Redis blacklist first — reject if token was invalidated (e.g. logout)
+        if (tokenBlacklistService.isBlacklisted(token)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String username;
         try {
             username = jwtService.extractUsername(token);
@@ -70,3 +79,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
+

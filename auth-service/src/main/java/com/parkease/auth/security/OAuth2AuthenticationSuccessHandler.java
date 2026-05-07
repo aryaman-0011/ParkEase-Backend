@@ -40,7 +40,6 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 
         AuthProvider provider = switch (registrationId.toLowerCase()) {
             case "google" -> AuthProvider.GOOGLE;
-            case "github" -> AuthProvider.GITHUB;
             default -> AuthProvider.LOCAL;
         };
 

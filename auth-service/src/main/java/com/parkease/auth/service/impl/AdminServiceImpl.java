@@ -12,6 +12,7 @@ import com.parkease.auth.repository.PasswordResetOtpRepository;
 import com.parkease.auth.repository.UserRepository;
 import com.parkease.auth.service.AdminService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -30,6 +32,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional(readOnly = true)
     public UserPageResponse listUsers(String search, Role role, int page, int size) {
+        log.info("Admin listing users: search={}, role={}, page={}, size={}", search, role, page, size);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<User> userPage = userRepository.searchUsers(
                 (search != null && search.isBlank()) ? null : search,
@@ -56,6 +59,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public UserResponse updateUserRole(Long id, AdminUpdateUserRequest request) {
+        log.info("Admin updating role for userId={} to {}", id, request.getRole());
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         user.setRole(request.getRole());
@@ -64,6 +68,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public UserResponse suspendUser(Long id) {
+        log.info("Admin suspending userId={}", id);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         if (user.getRole() == Role.ADMIN) {
@@ -78,6 +83,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public UserResponse reactivateUser(Long id) {
+        log.info("Admin reactivating userId={}", id);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         if (user.isActive()) {
@@ -89,6 +95,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     public void deleteUser(Long id) {
+        log.warn("Admin deleting userId={}", id);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         if (user.getRole() == Role.ADMIN) {

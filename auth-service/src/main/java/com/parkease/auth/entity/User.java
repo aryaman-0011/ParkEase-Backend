@@ -67,6 +67,12 @@ public class User {
     @Column(length = 500)
     private String profilePicUrl;
 
+    @Column(length = 150)
+    private String businessName;
+
+    @Column(length = 50)
+    private String businessRegistration;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

@@ -6,6 +6,7 @@ import com.parkease.spot_service.enums.VehicleType;
 import com.parkease.spot_service.service.SpotService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 // REST controller for parking spot management — CRUD, status transitions, bulk operations
+@Slf4j
 @RestController
 @RequestMapping("/spots")
 @RequiredArgsConstructor

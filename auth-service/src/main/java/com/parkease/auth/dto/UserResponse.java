@@ -26,6 +26,8 @@ public class UserResponse {
     private AuthProvider provider;
     private boolean active;
     private String profilePicUrl;
+    private String businessName;
+    private String businessRegistration;
     private LocalDateTime createdAt;
 
     public static UserResponse from(User user) {
@@ -39,6 +41,8 @@ public class UserResponse {
                 .provider(user.getProvider())
                 .active(user.isActive())
                 .profilePicUrl(user.getProfilePicUrl())
+                .businessName(user.getBusinessName())
+                .businessRegistration(user.getBusinessRegistration())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

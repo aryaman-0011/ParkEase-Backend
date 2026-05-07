@@ -4,6 +4,8 @@ import com.parkease.parkinglot_service.dto.CreateLotRequest;
 import com.parkease.parkinglot_service.dto.LotResponse;
 import com.parkease.parkinglot_service.dto.UpdateLotRequest;
 import com.parkease.parkinglot_service.entity.ParkingLot;
+import com.parkease.parkinglot_service.event.NotificationEvent;
+import com.parkease.parkinglot_service.event.NotificationEventProducer;
 import com.parkease.parkinglot_service.exception.BadRequestException;
 import com.parkease.parkinglot_service.exception.ResourceNotFoundException;
 import com.parkease.parkinglot_service.exception.UnauthorizedException;
@@ -11,16 +13,21 @@ import com.parkease.parkinglot_service.repository.ParkingLotRepository;
 import com.parkease.parkinglot_service.service.ParkingLotService;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class ParkingLotServiceImpl implements ParkingLotService {
 
     private final ParkingLotRepository lotRepository;
+    private final NotificationEventProducer notificationProducer;
 
     /* ───── Manager operations ───── */
 
@@ -44,7 +51,12 @@ public class ParkingLotServiceImpl implements ParkingLotService {
                 .description(request.getDescription())
                 .build();
 
-        return LotResponse.from(lotRepository.save(lot));
+        ParkingLot saved = lotRepository.save(lot);
+
+        // Notify all admins about new pending lot
+        notifyAdmins(saved);
+
+        return LotResponse.from(saved);
     }
 
     @Override
@@ -153,7 +165,20 @@ public class ParkingLotServiceImpl implements ParkingLotService {
         }
 
         lot.setApproved(true);
-        return LotResponse.from(lotRepository.save(lot));
+        ParkingLot saved = lotRepository.save(lot);
+
+        // Notify the manager that their lot was approved
+        notificationProducer.publish(NotificationEvent.builder()
+                .recipientId(saved.getManagerId())
+                .type("LOT_APPROVED")
+                .title("Lot Approved!")
+                .message("Your lot '" + saved.getName() + "' has been approved")
+                .channel("APP")
+                .relatedId(saved.getId())
+                .relatedType("LOT")
+                .build());
+
+        return LotResponse.from(saved);
     }
 
     @Override
@@ -164,6 +189,17 @@ public class ParkingLotServiceImpl implements ParkingLotService {
         if (lot.isApproved()) {
             throw new BadRequestException("Cannot reject an already approved lot");
         }
+
+        // Notify the manager that their lot was rejected (before deleting)
+        notificationProducer.publish(NotificationEvent.builder()
+                .recipientId(lot.getManagerId())
+                .type("LOT_REJECTED")
+                .title("Lot Rejected")
+                .message("Your lot '" + lot.getName() + "' was rejected by admin")
+                .channel("APP")
+                .relatedId(lot.getId())
+                .relatedType("LOT")
+                .build());
 
         lotRepository.delete(lot);
         return LotResponse.from(lot);
@@ -246,5 +282,34 @@ public class ParkingLotServiceImpl implements ParkingLotService {
                 * Math.sin(dLon / 2) * Math.sin(dLon / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
+    }
+
+    /**
+     * Fetch admin user IDs from auth-service and publish a notification for each.
+     */
+    @SuppressWarnings("unchecked")
+    private void notifyAdmins(ParkingLot lot) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            Map<String, Object> response = restTemplate.getForObject(
+                    "http://localhost:8081/auth/internal/admin-ids", Map.class);
+
+            if (response != null && response.get("ids") != null) {
+                List<Integer> adminIds = (List<Integer>) response.get("ids");
+                for (Integer adminId : adminIds) {
+                    notificationProducer.publish(NotificationEvent.builder()
+                            .recipientId(adminId.longValue())
+                            .type("NEW_LOT_PENDING")
+                            .title("New Lot Pending Approval")
+                            .message("'" + lot.getName() + "' in " + lot.getCity() + " submitted for approval")
+                            .channel("APP")
+                            .relatedId(lot.getId())
+                            .relatedType("LOT")
+                            .build());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not notify admins: {}", e.getMessage());
+        }
     }
 }

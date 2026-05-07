@@ -4,9 +4,12 @@ import com.parkease.spot_service.entity.ParkingSpot;
 import com.parkease.spot_service.enums.SpotStatus;
 import com.parkease.spot_service.enums.SpotType;
 import com.parkease.spot_service.enums.VehicleType;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
@@ -15,7 +18,9 @@ import java.time.LocalDateTime;
  */
 @Data
 @Builder
-public class SpotResponse {
+@NoArgsConstructor
+@AllArgsConstructor
+public class SpotResponse implements Serializable {
 
     private Long spotId;
     private Long lotId;

@@ -10,9 +10,11 @@ import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class JwtServiceImpl implements JwtService {
 
@@ -55,6 +57,7 @@ public class JwtServiceImpl implements JwtService {
                 .compact();
     }
 
+
     @Override
     public String extractUsername(String token) {
         return getClaims(token).getSubject();
@@ -74,6 +77,16 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public long getRememberMeExpirationInSeconds() {
         return rememberMeExpirationMillis / 1000;
+    }
+
+    @Override
+    public long getRemainingMillis(String token) {
+        try {
+            Date expiration = getClaims(token).getExpiration();
+            return expiration.getTime() - System.currentTimeMillis();
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     private Claims getClaims(String token) {

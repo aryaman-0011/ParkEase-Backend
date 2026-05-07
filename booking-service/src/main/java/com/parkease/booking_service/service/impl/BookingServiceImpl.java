@@ -5,6 +5,8 @@ import com.parkease.booking_service.dto.CreateBookingRequest;
 import com.parkease.booking_service.dto.ExtendBookingRequest;
 import com.parkease.booking_service.entity.Booking;
 import com.parkease.booking_service.enums.BookingStatus;
+import com.parkease.booking_service.event.NotificationEvent;
+import com.parkease.booking_service.event.NotificationEventProducer;
 import com.parkease.booking_service.exception.BadRequestException;
 import com.parkease.booking_service.exception.ResourceNotFoundException;
 import com.parkease.booking_service.repository.BookingRepository;
@@ -19,6 +21,8 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 
 // Core booking logic — handles time-slot based reservations with multi-vehicle support.
 // Communicates with spot-service (status changes) and parkinglot-service (pricing) via REST.
@@ -29,6 +33,8 @@ public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
     private final RestTemplate restTemplate;
+    private final NotificationEventProducer notificationProducer;
+    private final org.springframework.integration.redis.util.RedisLockRegistry redisLockRegistry;
 
     // Inter-service URLs (resolved via Eureka service discovery)
     private static final String SPOT_SERVICE = "http://spot-service";
@@ -41,6 +47,27 @@ public class BookingServiceImpl implements BookingService {
     // Creates a time-slot booking after validating: time range, vehicle availability, and spot conflicts.
     @Override
     public BookingResponse createBooking(CreateBookingRequest request) {
+        // Acquire a distributed lock on the spot to prevent double-booking race conditions
+        Lock lock = redisLockRegistry.obtain("spot:" + request.getSpotId());
+        boolean acquired;
+        try {
+            acquired = lock.tryLock(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BadRequestException("Booking request interrupted. Please try again.");
+        }
+        if (!acquired) {
+            throw new BadRequestException("This spot is being booked by another user. Please try again.");
+        }
+        try {
+            return doCreateBooking(request);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    // Actual booking logic — runs inside a distributed lock
+    private BookingResponse doCreateBooking(CreateBookingRequest request) {
         LocalDateTime start = request.getScheduledStartTime();
         LocalDateTime end = request.getScheduledEndTime();
         LocalDateTime now = LocalDateTime.now();
@@ -124,6 +151,31 @@ public class BookingServiceImpl implements BookingService {
         log.info("Booking {} created: user={} spot={} vehicle={} time={} to {}",
                 booking.getBookingId(), request.getUserId(), request.getSpotId(),
                 request.getVehicleId(), start, end);
+
+        // Notify driver about booking confirmation
+        notificationProducer.publish(NotificationEvent.builder()
+                .recipientId(request.getUserId())
+                .type("BOOKING")
+                .title("Booking Confirmed")
+                .message("Spot " + spotData.get("spotNumber") + " reserved at " + lotName)
+                .channel("APP")
+                .relatedId(booking.getBookingId())
+                .relatedType("BOOKING")
+                .build());
+
+        // Notify lot manager about the new booking
+        if (lotData != null && lotData.get("managerId") != null) {
+            notificationProducer.publish(NotificationEvent.builder()
+                    .recipientId(((Number) lotData.get("managerId")).longValue())
+                    .type("BOOKING_RECEIVED")
+                    .title("New Booking Received")
+                    .message("Spot " + spotData.get("spotNumber") + " booked at " + lotName)
+                    .channel("APP")
+                    .relatedId(booking.getBookingId())
+                    .relatedType("BOOKING")
+                    .build());
+        }
+
         return toResponse(booking);
     }
 

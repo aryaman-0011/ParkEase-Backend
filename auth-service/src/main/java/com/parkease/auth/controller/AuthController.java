@@ -14,6 +14,7 @@ import com.parkease.auth.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,22 +30,27 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 // Handles all authentication-related endpoints — register, login, password reset, profile, OAuth2
+@Slf4j
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
+    private final com.parkease.auth.service.impl.TokenBlacklistService tokenBlacklistService;
+    private final com.parkease.auth.service.JwtService jwtService;
 
     // Register a new user and return JWT tokens
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        log.info("Registration attempt: email={}", request.getEmail());
         return ResponseEntity.ok(authService.register(request));
     }
 
     // Authenticate user with email/password and return JWT tokens
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        log.info("Login attempt: email={}", request.getEmail());
         return ResponseEntity.ok(authService.login(request));
     }
 
@@ -53,6 +59,17 @@ public class AuthController {
     public ResponseEntity<AuthResponse> refresh(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
         String token = authorizationHeader.replace("Bearer ", "").trim();
         return ResponseEntity.ok(authService.refreshToken(token));
+    }
+
+    // Logout — blacklist the current JWT so it can no longer be used
+    @PostMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiMessageResponse> logout(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
+        String token = authorizationHeader.replace("Bearer ", "").trim();
+        long remainingMillis = jwtService.getRemainingMillis(token);
+        tokenBlacklistService.blacklist(token, remainingMillis);
+        log.info("User logged out, token blacklisted");
+        return ResponseEntity.ok(new ApiMessageResponse("Logged out successfully"));
     }
 
     // Get the currently authenticated user's profile
@@ -67,6 +84,7 @@ public class AuthController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponse> updateProfile(Authentication authentication,
                                                       @Valid @RequestBody UpdateProfileRequest request) {
+        log.info("Profile update: user={}", authentication.getName());
         return ResponseEntity.ok(authService.updateProfile(authentication.getName(), request));
     }
 
@@ -75,6 +93,7 @@ public class AuthController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiMessageResponse> changePassword(Authentication authentication,
                                                              @Valid @RequestBody ChangePasswordRequest request) {
+        log.info("Password change: user={}", authentication.getName());
         authService.changePassword(authentication.getName(), request);
         return ResponseEntity.ok(new ApiMessageResponse("Password updated successfully"));
     }
@@ -83,6 +102,7 @@ public class AuthController {
     @PutMapping("/deactivate")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiMessageResponse> deactivate(Authentication authentication) {
+        log.warn("Account deactivation: user={}", authentication.getName());
         authService.deactivateAccount(authentication.getName());
         return ResponseEntity.ok(new ApiMessageResponse("Account deactivated successfully"));
     }
@@ -91,6 +111,7 @@ public class AuthController {
     @DeleteMapping("/account")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiMessageResponse> deleteAccount(Authentication authentication) {
+        log.warn("Account deletion: user={}", authentication.getName());
         authService.deleteAccount(authentication.getName());
         return ResponseEntity.ok(new ApiMessageResponse("Account and all associated data deleted successfully"));
     }
@@ -98,6 +119,7 @@ public class AuthController {
     // Step 1 of password reset — sends a 6-digit OTP to the user's email
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiMessageResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        log.info("Forgot password OTP requested: email={}", request.getEmail());
         authService.forgotPassword(request);
         return ResponseEntity.ok(new ApiMessageResponse("OTP sent to your email address"));
     }
@@ -122,9 +144,5 @@ public class AuthController {
         response.sendRedirect("/oauth2/authorization/google");
     }
 
-    // Client-side logout — instructs frontend to drop the JWT token
-    @PostMapping("/logout")
-    public ResponseEntity<ApiMessageResponse> logout() {
-        return ResponseEntity.ok(new ApiMessageResponse("Logout successful on client side. Drop the JWT token or cookie."));
-    }
 }
+

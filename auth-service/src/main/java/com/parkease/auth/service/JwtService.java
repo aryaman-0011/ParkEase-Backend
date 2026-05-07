@@ -15,4 +15,6 @@ public interface JwtService {
     long getExpirationInSeconds();
 
     long getRememberMeExpirationInSeconds();
+
+    long getRemainingMillis(String token);
 }

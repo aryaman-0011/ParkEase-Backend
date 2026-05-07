@@ -8,6 +8,7 @@ import com.parkease.parkinglot_service.service.ParkingLotService;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 // REST controller for parking lot CRUD — manager creates lots, admin approves, drivers search
+@Slf4j
 @RestController
 @RequestMapping("/lots")
 @RequiredArgsConstructor

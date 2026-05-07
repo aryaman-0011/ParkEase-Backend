@@ -6,6 +6,7 @@ import com.parkease.booking_service.dto.ExtendBookingRequest;
 import com.parkease.booking_service.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 // REST controller for time-slot based parking bookings — create, check-in/out, cancel, extend
+@Slf4j
 @RestController
 @RequestMapping("/bookings")
 @RequiredArgsConstructor

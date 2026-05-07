@@ -9,6 +9,7 @@ import com.parkease.auth.enums.Role;
 import com.parkease.auth.service.AdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 // Admin-only endpoints for user management — list, update roles, suspend, delete users
+@Slf4j
 @RestController
 @RequestMapping("/auth/admin")
 @RequiredArgsConstructor

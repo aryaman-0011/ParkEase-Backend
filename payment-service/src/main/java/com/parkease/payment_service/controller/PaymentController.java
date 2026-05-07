@@ -5,6 +5,7 @@ import com.parkease.payment_service.service.PaymentService;
 import com.parkease.payment_service.service.impl.PaymentServiceImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 // REST controller for payments — Razorpay integration, payment history, revenue reports
+@Slf4j
 @RestController
 @RequestMapping("/payments")
 @RequiredArgsConstructor
