@@ -1,12 +1,8 @@
 // ParkEase CI/CD Pipeline
-// This pipeline builds, tests, and analyzes all microservices automatically on every push.
+// Builds, tests, and packages all microservices automatically.
 
 pipeline {
     agent any
-
-    environment {
-        SONAR_HOST  = 'http://parkease-sonarqube:9000'
-    }
 
     options {
         timestamps()
@@ -22,19 +18,35 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
-                echo "Branch: ${env.BRANCH_NAME ?: 'N/A'}"
                 echo "Commit: ${env.GIT_COMMIT ?: 'N/A'}"
             }
         }
 
         // ──────────────────────────────────────────────
-        // Stage 2: Build all microservices (compile only)
+        // Stage 2: Install Maven (not pre-installed in Jenkins image)
+        // ──────────────────────────────────────────────
+        stage('Setup Maven') {
+            steps {
+                sh '''
+                    if ! command -v mvn &> /dev/null; then
+                        echo "=== Installing Maven ==="
+                        apt-get update -qq && apt-get install -y -qq maven > /dev/null 2>&1
+                        mvn --version
+                    else
+                        echo "Maven already installed"
+                        mvn --version
+                    fi
+                '''
+            }
+        }
+
+        // ──────────────────────────────────────────────
+        // Stage 3: Build all microservices
         // ──────────────────────────────────────────────
         stage('Build') {
             steps {
                 script {
                     def services = [
-                        'service-registry',
                         'api-gateway',
                         'auth-service',
                         'booking-service',
@@ -48,7 +60,7 @@ pipeline {
                     for (svc in services) {
                         dir(svc) {
                             echo "=== Building ${svc} ==="
-                            sh 'chmod +x mvnw && ./mvnw clean compile -DskipTests -q'
+                            sh 'mvn clean compile -DskipTests -q'
                         }
                     }
                 }
@@ -56,7 +68,7 @@ pipeline {
         }
 
         // ──────────────────────────────────────────────
-        // Stage 3: Run unit tests + generate JaCoCo reports
+        // Stage 4: Run unit tests
         // ──────────────────────────────────────────────
         stage('Test') {
             steps {
@@ -75,14 +87,13 @@ pipeline {
                     for (svc in services) {
                         dir(svc) {
                             echo "=== Testing ${svc} ==="
-                            sh 'chmod +x mvnw && ./mvnw test -q'
+                            sh 'mvn test -q'
                         }
                     }
                 }
             }
             post {
                 always {
-                    // Publish JUnit test results from all services
                     junit allowEmptyResults: true,
                          testResults: '**/target/surefire-reports/*.xml'
                 }
@@ -90,13 +101,12 @@ pipeline {
         }
 
         // ──────────────────────────────────────────────
-        // Stage 4: Package JARs
+        // Stage 5: Package JARs
         // ──────────────────────────────────────────────
         stage('Package') {
             steps {
                 script {
                     def services = [
-                        'service-registry',
                         'api-gateway',
                         'auth-service',
                         'booking-service',
@@ -110,7 +120,7 @@ pipeline {
                     for (svc in services) {
                         dir(svc) {
                             echo "=== Packaging ${svc} ==="
-                            sh 'chmod +x mvnw && ./mvnw package -DskipTests -q'
+                            sh 'mvn package -DskipTests -q'
                         }
                     }
                 }
@@ -125,9 +135,6 @@ pipeline {
         }
     }
 
-    // ──────────────────────────────────────────────
-    // Post-build actions
-    // ──────────────────────────────────────────────
     post {
         success {
             echo '====================================='
