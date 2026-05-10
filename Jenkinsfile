@@ -4,6 +4,11 @@
 pipeline {
     agent any
 
+    environment {
+        MAVEN_HOME = "${WORKSPACE}/maven"
+        PATH       = "${MAVEN_HOME}/bin:${env.PATH}"
+    }
+
     options {
         timestamps()
         timeout(time: 30, unit: 'MINUTES')
@@ -12,9 +17,6 @@ pipeline {
 
     stages {
 
-        // ──────────────────────────────────────────────
-        // Stage 1: Checkout source code
-        // ──────────────────────────────────────────────
         stage('Checkout') {
             steps {
                 checkout scm
@@ -22,27 +24,19 @@ pipeline {
             }
         }
 
-        // ──────────────────────────────────────────────
-        // Stage 2: Install Maven (not pre-installed in Jenkins image)
-        // ──────────────────────────────────────────────
         stage('Setup Maven') {
             steps {
                 sh '''
-                    if ! command -v mvn &> /dev/null; then
-                        echo "=== Installing Maven ==="
-                        apt-get update -qq && apt-get install -y -qq maven > /dev/null 2>&1
-                        mvn --version
-                    else
-                        echo "Maven already installed"
-                        mvn --version
+                    if [ ! -f "${MAVEN_HOME}/bin/mvn" ]; then
+                        echo "=== Downloading Maven ==="
+                        curl -sL https://archive.apache.org/dist/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.tar.gz | tar xz -C "${WORKSPACE}"
+                        mv "${WORKSPACE}/apache-maven-3.9.6" "${MAVEN_HOME}"
                     fi
+                    mvn --version
                 '''
             }
         }
 
-        // ──────────────────────────────────────────────
-        // Stage 3: Build all microservices
-        // ──────────────────────────────────────────────
         stage('Build') {
             steps {
                 script {
@@ -67,9 +61,6 @@ pipeline {
             }
         }
 
-        // ──────────────────────────────────────────────
-        // Stage 4: Run unit tests
-        // ──────────────────────────────────────────────
         stage('Test') {
             steps {
                 script {
@@ -100,9 +91,6 @@ pipeline {
             }
         }
 
-        // ──────────────────────────────────────────────
-        // Stage 5: Package JARs
-        // ──────────────────────────────────────────────
         stage('Package') {
             steps {
                 script {
