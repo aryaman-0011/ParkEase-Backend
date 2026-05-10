@@ -31,7 +31,7 @@ public class ProfilePictureController {
     private final UserRepository userRepository;
 
     private static final String UPLOAD_DIR = "uploads/avatars";
-    private static final long MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+    private static final long MAX_SIZE = 2L * 1024 * 1024; // 2 MB
     private static final Set<String> ALLOWED_TYPES = Set.of(
             "image/jpeg", "image/png", "image/webp", "image/gif"
     );

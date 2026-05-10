@@ -12,7 +12,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/analytics")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "${app.cors.allowed-origins:http://localhost:4200}")
 public class AnalyticsResource {
 
     private final AnalyticsService analyticsService;
