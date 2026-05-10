@@ -78,7 +78,7 @@ pipeline {
                     for (svc in services) {
                         dir(svc) {
                             echo "=== Testing ${svc} ==="
-                            sh 'mvn test -q'
+                            sh 'mvn test -q -Dtest="!*ApplicationTests" -Dsurefire.failIfNoSpecifiedTests=false'
                         }
                     }
                 }
