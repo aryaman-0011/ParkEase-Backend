@@ -16,6 +16,8 @@ services:
       - jenkins_home:/var/jenkins_home
     environment:
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=true
+    networks:
+      - parkease-ci
     restart: unless-stopped
 
   # ── SonarQube Code Quality ──
@@ -31,9 +33,15 @@ services:
       - sonarqube_logs:/opt/sonarqube/logs
       - sonarqube_extensions:/opt/sonarqube/extensions
     restart: unless-stopped
+    networks:
+      - parkease-ci
 
 volumes:
   jenkins_home:
   sonarqube_data:
   sonarqube_logs:
   sonarqube_extensions:
+
+networks:
+  parkease-ci:
+    driver: bridge

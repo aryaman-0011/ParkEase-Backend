@@ -91,6 +91,38 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            steps {
+                withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                    script {
+                        def services = [
+                            'api-gateway',
+                            'auth-service',
+                            'booking-service',
+                            'parkinglot-service',
+                            'spot-service',
+                            'vehicle-service',
+                            'payment-service',
+                            'notification-service',
+                            'analytics-service'
+                        ]
+                        for (svc in services) {
+                            dir(svc) {
+                                echo "=== Analyzing ${svc} ==="
+                                sh """
+                                    mvn sonar:sonar -q \
+                                        -Dsonar.projectKey=parkease-${svc} \
+                                        -Dsonar.projectName=\"ParkEase ${svc}\" \
+                                        -Dsonar.host.url=http://sonarqube:9000 \
+                                        -Dsonar.token=\$SONAR_TOKEN
+                                """
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Package') {
             steps {
                 script {
