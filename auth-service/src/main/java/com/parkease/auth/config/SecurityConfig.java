@@ -31,8 +31,9 @@ public class SecurityConfig {
 
     // Main security filter chain — defines access rules for all endpoints
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(AbstractHttpConfigurer::disable) // Disable CSRF since we use JWT (stateless)
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+        try {
+            http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 // Public endpoints — no authentication required
@@ -68,13 +69,16 @@ public class SecurityConfig {
                 // Run our JWT filter before Spring's default username/password filter
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        // Only enable OAuth2 login if Google client credentials are configured
-        if (clientRegistrationRepositoryProvider.getIfAvailable() != null) {
-            http.oauth2Login(oauth2 -> oauth2
-                    .successHandler(oAuth2AuthenticationSuccessHandler)
-                    .failureHandler(oAuth2AuthenticationFailureHandler));
-        }
+            // Only enable OAuth2 login if Google client credentials are configured
+            if (clientRegistrationRepositoryProvider.getIfAvailable() != null) {
+                http.oauth2Login(oauth2 -> oauth2
+                        .successHandler(oAuth2AuthenticationSuccessHandler)
+                        .failureHandler(oAuth2AuthenticationFailureHandler));
+            }
 
-        return http.build();
+            return http.build();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to configure security filter chain", e);
+        }
     }
 }

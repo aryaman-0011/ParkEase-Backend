@@ -15,6 +15,7 @@ import java.util.Map;
 @CrossOrigin(origins = "${app.cors.allowed-origins:http://localhost:4200}")
 public class AnalyticsResource {
 
+    private static final String LOT_ID = "lotId";
     private final AnalyticsService analyticsService;
 
     /** POST /analytics/log — Record an occupancy snapshot */
@@ -34,13 +35,13 @@ public class AnalyticsResource {
     @GetMapping("/occupancyRate")
     public ResponseEntity<Map<String, Object>> getOccupancyRate(@RequestParam Long lotId) {
         Double rate = analyticsService.getOccupancyRate(lotId);
-        return ResponseEntity.ok(Map.of("lotId", lotId, "occupancyRate", rate));
+        return ResponseEntity.ok(Map.of(LOT_ID, lotId, "occupancyRate", rate));
     }
 
     /** GET /analytics/byHour?lotId=1 */
     @GetMapping("/byHour")
     public ResponseEntity<Map<String, Object>> getOccupancyByHour(@RequestParam Long lotId) {
-        return ResponseEntity.ok(Map.of("lotId", lotId, "hourly", analyticsService.getOccupancyByHour(lotId)));
+        return ResponseEntity.ok(Map.of(LOT_ID, lotId, "hourly", analyticsService.getOccupancyByHour(lotId)));
     }
 
     /** GET /analytics/peakHours?lotId=1 */
@@ -67,14 +68,14 @@ public class AnalyticsResource {
     /** GET /analytics/spotTypes?lotId=1 */
     @GetMapping("/spotTypes")
     public ResponseEntity<Map<String, Object>> getSpotTypes(@RequestParam Long lotId) {
-        return ResponseEntity.ok(Map.of("lotId", lotId, "spotTypes", analyticsService.getMostUsedSpotTypes(lotId)));
+        return ResponseEntity.ok(Map.of(LOT_ID, lotId, "spotTypes", analyticsService.getMostUsedSpotTypes(lotId)));
     }
 
     /** GET /analytics/avgDuration?lotId=1 */
     @GetMapping("/avgDuration")
     public ResponseEntity<Map<String, Object>> getAvgDuration(@RequestParam Long lotId) {
         Double avgMinutes = analyticsService.getAvgDuration(lotId);
-        return ResponseEntity.ok(Map.of("lotId", lotId, "avgDurationMinutes", avgMinutes));
+        return ResponseEntity.ok(Map.of(LOT_ID, lotId, "avgDurationMinutes", avgMinutes));
     }
 
     /** GET /analytics/platformSummary */

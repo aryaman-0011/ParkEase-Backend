@@ -34,7 +34,11 @@ public class SecurityBeansConfig {
 
     // Auth manager — used by login endpoint to authenticate credentials
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
-        return configuration.getAuthenticationManager();
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) {
+        try {
+            return configuration.getAuthenticationManager();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to initialize AuthenticationManager", e);
+        }
     }
 }

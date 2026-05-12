@@ -19,12 +19,15 @@ public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
 
+    private static final String CHARSET = "UTF-8";
+    private static final String STATUS_SUCCESS = "SUCCESS";
+
     @Override
     @Async
     public void sendOtpEmail(String toEmail, String otp) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, CHARSET);
 
             helper.setTo(toEmail);
             helper.setSubject("ParkEase — Your Password Reset Code");
@@ -34,7 +37,7 @@ public class EmailServiceImpl implements EmailService {
             log.info("OTP email sent successfully to {}", toEmail);
         } catch (MessagingException e) {
             log.error("Failed to send OTP email to {}: {}", toEmail, e.getMessage());
-            throw new RuntimeException("Failed to send OTP email. Please try again later.");
+            throw new IllegalStateException("Failed to send OTP email. Please try again later.");
         }
     }
 
@@ -43,7 +46,7 @@ public class EmailServiceImpl implements EmailService {
     public void sendLoginNotificationEmail(String toEmail, String fullName, String loginMethod) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, CHARSET);
 
             helper.setTo(toEmail);
             helper.setSubject("ParkEase — New Sign-In to Your Account");
@@ -188,7 +191,7 @@ public class EmailServiceImpl implements EmailService {
     public void sendWelcomeEmail(String toEmail, String fullName) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, CHARSET);
 
             helper.setTo(toEmail);
             helper.setSubject("Welcome to ParkEase \uD83C\uDF89");
@@ -206,7 +209,7 @@ public class EmailServiceImpl implements EmailService {
     public void sendReceiptEmail(String toEmail, String fullName, java.util.Map<String, String> d) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, CHARSET);
 
             helper.setTo(toEmail);
             helper.setSubject("ParkEase \u2014 Payment Receipt " + d.getOrDefault("receiptNumber", ""));
@@ -216,7 +219,7 @@ public class EmailServiceImpl implements EmailService {
             log.info("Receipt email sent to {}", toEmail);
         } catch (MessagingException e) {
             log.error("Failed to send receipt email to {}: {}", toEmail, e.getMessage());
-            throw new RuntimeException("Failed to send receipt email");
+            throw new IllegalStateException("Failed to send receipt email");
         }
     }
 
@@ -271,7 +274,7 @@ public class EmailServiceImpl implements EmailService {
     private String buildReceiptEmailHtml(String fullName, java.util.Map<String, String> d) {
         String name = (fullName != null && !fullName.isBlank()) ? fullName : "Customer";
         String amount = d.getOrDefault("amount", "0.00");
-        String status = d.getOrDefault("status", "SUCCESS");
+        String status = d.getOrDefault("status", STATUS_SUCCESS);
         String receiptNo = d.getOrDefault("receiptNumber", "—");
         String method = d.getOrDefault("paymentMethod", "—");
         String txnId = d.getOrDefault("transactionId", "—");
@@ -283,13 +286,13 @@ public class EmailServiceImpl implements EmailService {
         String description = d.getOrDefault("description", "Parking fee");
 
         String statusColor = switch (status) {
-            case "SUCCESS" -> "#22c55e";
+            case STATUS_SUCCESS -> "#22c55e";
             case "REFUNDED" -> "#38bdf8";
             case "FAILED" -> "#ef4444";
             default -> "#eab308";
         };
         String statusBg = switch (status) {
-            case "SUCCESS" -> "rgba(34,197,94,0.1)";
+            case STATUS_SUCCESS -> "rgba(34,197,94,0.1)";
             case "REFUNDED" -> "rgba(56,189,248,0.1)";
             case "FAILED" -> "rgba(239,68,68,0.1)";
             default -> "rgba(234,179,8,0.1)";

@@ -49,6 +49,7 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final String USER_NOT_FOUND = "User not found";
 
     @Value("${app.otp.expiration-minutes:5}")
     private int otpExpirationMinutes;
@@ -148,7 +149,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void deleteAccount(String email) {
         User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         if (user.getRole() == Role.ADMIN) {
             throw new BadRequestException("Admin accounts cannot be deleted through self-service");
@@ -259,7 +260,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
 
         if (passwordEncoder.matches(request.getNewPassword(), user.getPasswordHash())) {
             throw new BadRequestException("New password must be different from current password");
@@ -274,7 +275,7 @@ public class AuthServiceImpl implements AuthService {
 
     private User getActiveUserByEmail(String email) {
         User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
         if (!user.isActive()) {
             throw new UnauthorizedException("User account is deactivated");
         }

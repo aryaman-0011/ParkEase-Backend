@@ -31,6 +31,7 @@ public class ProfilePictureController {
     private final UserRepository userRepository;
 
     private static final String UPLOAD_DIR = "uploads/avatars";
+    private static final String AVATARS_PATH = "/avatars/";
     private static final long MAX_SIZE = 2L * 1024 * 1024; // 2 MB
     private static final Set<String> ALLOWED_TYPES = Set.of(
             "image/jpeg", "image/png", "image/webp", "image/gif"
@@ -66,7 +67,7 @@ public class ProfilePictureController {
 
         // Delete old avatar if it exists
         String oldPicUrl = user.getProfilePicUrl();
-        if (oldPicUrl != null && oldPicUrl.contains("/avatars/")) {
+        if (oldPicUrl != null && oldPicUrl.contains(AVATARS_PATH)) {
             String oldFileName = oldPicUrl.substring(oldPicUrl.lastIndexOf("/") + 1);
             Path oldFile = uploadPath.resolve(oldFileName);
             Files.deleteIfExists(oldFile);
@@ -85,7 +86,7 @@ public class ProfilePictureController {
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
         // Update user profile pic URL (relative path served by static resources)
-        String profilePicUrl = "/avatars/" + fileName;
+        String profilePicUrl = AVATARS_PATH + fileName;
         user.setProfilePicUrl(profilePicUrl);
         User saved = userRepository.save(user);
         log.info("Profile picture uploaded: user={} file={}", authentication.getName(), fileName);
@@ -100,7 +101,7 @@ public class ProfilePictureController {
                 .orElseThrow(() -> new BadRequestException("User not found"));
 
         String oldPicUrl = user.getProfilePicUrl();
-        if (oldPicUrl != null && oldPicUrl.contains("/avatars/")) {
+        if (oldPicUrl != null && oldPicUrl.contains(AVATARS_PATH)) {
             String oldFileName = oldPicUrl.substring(oldPicUrl.lastIndexOf("/") + 1);
             Path oldFile = Paths.get(UPLOAD_DIR).resolve(oldFileName);
             Files.deleteIfExists(oldFile);

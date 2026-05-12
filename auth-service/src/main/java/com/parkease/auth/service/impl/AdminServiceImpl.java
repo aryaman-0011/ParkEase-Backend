@@ -29,6 +29,8 @@ public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
     private final PasswordResetOtpRepository otpRepository;
 
+    private static final String USER_NOT_FOUND_MSG = "User not found with id: ";
+
     @Override
     @Transactional(readOnly = true)
     public UserPageResponse listUsers(String search, Role role, int page, int size) {
@@ -53,7 +55,7 @@ public class AdminServiceImpl implements AdminService {
     @Transactional(readOnly = true)
     public UserResponse getUserById(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_MSG + id));
         return UserResponse.from(user);
     }
 
@@ -61,7 +63,7 @@ public class AdminServiceImpl implements AdminService {
     public UserResponse updateUserRole(Long id, AdminUpdateUserRequest request) {
         log.info("Admin updating role for userId={} to {}", id, request.getRole());
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_MSG + id));
         user.setRole(request.getRole());
         return UserResponse.from(userRepository.save(user));
     }
@@ -70,7 +72,7 @@ public class AdminServiceImpl implements AdminService {
     public UserResponse suspendUser(Long id) {
         log.info("Admin suspending userId={}", id);
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_MSG + id));
         if (user.getRole() == Role.ADMIN) {
             throw new BadRequestException("Cannot suspend an admin account");
         }
@@ -85,7 +87,7 @@ public class AdminServiceImpl implements AdminService {
     public UserResponse reactivateUser(Long id) {
         log.info("Admin reactivating userId={}", id);
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_MSG + id));
         if (user.isActive()) {
             throw new BadRequestException("User is already active");
         }
@@ -97,7 +99,7 @@ public class AdminServiceImpl implements AdminService {
     public void deleteUser(Long id) {
         log.warn("Admin deleting userId={}", id);
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_MSG + id));
         if (user.getRole() == Role.ADMIN) {
             throw new BadRequestException("Cannot delete an admin account");
         }

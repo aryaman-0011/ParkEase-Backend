@@ -22,6 +22,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final AnalyticsRepository analyticsRepository;
     private final RestTemplate restTemplate;
 
+    private static final String LOT_ID = "lotId";
+    private static final String REVENUE = "revenue";
+
     @Override
     public void logOccupancy(Long lotId, Long spotId, Double occupancyRate,
                              Integer availableSpots, Integer totalSpots, String vehicleType) {
@@ -85,13 +88,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             @SuppressWarnings("unchecked")
             Map<String, Object> revenue = restTemplate.getForObject(
                     "http://localhost:8087/payments/lot/{lotId}/revenue", Map.class, lotId);
-            result.put("lotId", lotId);
-            result.put("revenue", revenue);
+            result.put(LOT_ID, lotId);
+            result.put(REVENUE, revenue);
             log.info("Fetched revenue for lot {}", lotId);
         } catch (Exception e) {
             log.warn("Failed to fetch revenue for lot {}: {}", lotId, e.getMessage());
-            result.put("lotId", lotId);
-            result.put("revenue", null);
+            result.put(LOT_ID, lotId);
+            result.put(REVENUE, null);
             result.put("error", "Revenue data unavailable");
         }
         return result;
@@ -100,7 +103,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     @Override
     public Map<String, Object> getRevenueByDay(Long lotId, LocalDate from, LocalDate to) {
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("lotId", lotId);
+        result.put(LOT_ID, lotId);
         result.put("from", from.toString());
         result.put("to", to.toString());
 
@@ -180,13 +183,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     @Override
     public Map<String, Object> generateDailyReport(Long lotId) {
         Map<String, Object> report = new LinkedHashMap<>();
-        report.put("lotId", lotId);
+        report.put(LOT_ID, lotId);
         report.put("generatedAt", LocalDateTime.now().toString());
         report.put("occupancyRate", getOccupancyRate(lotId));
         report.put("peakHours", getPeakHours(lotId));
         report.put("spotTypes", getMostUsedSpotTypes(lotId));
         report.put("avgDuration", getAvgDuration(lotId));
-        report.put("revenue", getRevenueByLot(lotId));
+        report.put(REVENUE, getRevenueByLot(lotId));
 
         // Today's activity count
         Long todayCount = analyticsRepository.countTodayByLotId(lotId);

@@ -70,7 +70,7 @@ class AdminServiceImplTest {
 
             assertThat(response.getContent()).hasSize(2);
             assertThat(response.getTotalElements()).isEqualTo(2);
-            assertThat(response.getPage()).isEqualTo(0);
+            assertThat(response.getPage()).isZero();
         }
 
         @Test

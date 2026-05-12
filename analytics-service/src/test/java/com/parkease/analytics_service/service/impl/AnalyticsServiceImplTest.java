@@ -97,7 +97,7 @@ class AnalyticsServiceImplTest {
             Map<Integer, Double> result = analyticsService.getOccupancyByHour(10L);
 
             assertThat(result).hasSize(3);
-            assertThat(result.get(12)).isEqualTo(92.0);
+            assertThat(result).containsEntry(12, 92.0);
         }
     }
 
@@ -115,8 +115,8 @@ class AnalyticsServiceImplTest {
 
             Map<String, Object> result = analyticsService.getPeakHours(10L);
 
-            assertThat(result.get("peakHour")).isEqualTo(17);
-            assertThat(result.get("peakRate")).isEqualTo(95.0);
+            assertThat(result).containsEntry("peakHour", 17);
+            assertThat(result).containsEntry("peakRate", 95.0);
         }
 
         @Test
@@ -146,8 +146,8 @@ class AnalyticsServiceImplTest {
 
             Map<String, Long> types = analyticsService.getMostUsedSpotTypes(10L);
 
-            assertThat(types.get("FOUR_WHEELER")).isEqualTo(2);
-            assertThat(types.get("TWO_WHEELER")).isEqualTo(1);
+            assertThat(types).containsEntry("FOUR_WHEELER", 2L);
+            assertThat(types).containsEntry("TWO_WHEELER", 1L);
         }
     }
 
@@ -163,7 +163,7 @@ class AnalyticsServiceImplTest {
 
             Map<String, Object> result = analyticsService.getRevenueByLot(10L);
 
-            assertThat(result.get("lotId")).isEqualTo(10L);
+            assertThat(result).containsEntry("lotId", 10L);
             assertThat(result.get("revenue")).isNotNull();
         }
 
@@ -175,7 +175,7 @@ class AnalyticsServiceImplTest {
 
             Map<String, Object> result = analyticsService.getRevenueByLot(10L);
 
-            assertThat(result.get("error")).isEqualTo("Revenue data unavailable");
+            assertThat(result).containsEntry("error", "Revenue data unavailable");
         }
     }
 
@@ -192,9 +192,9 @@ class AnalyticsServiceImplTest {
 
             Map<String, Object> result = analyticsService.getPlatformSummary();
 
-            assertThat(result.get("totalLotsTracked")).isEqualTo(2);
-            assertThat(result.get("totalOccupancyLogs")).isEqualTo(100L);
-            assertThat((Double) result.get("overallOccupancyRate")).isGreaterThan(0);
+            assertThat(result).containsEntry("totalLotsTracked", 2);
+            assertThat(result).containsEntry("totalOccupancyLogs", 100L);
+            assertThat((Double) result.get("overallOccupancyRate")).isPositive();
         }
 
         @Test
@@ -205,7 +205,7 @@ class AnalyticsServiceImplTest {
 
             Map<String, Object> result = analyticsService.getPlatformSummary();
 
-            assertThat(result.get("totalLotsTracked")).isEqualTo(0);
+            assertThat(result).containsEntry("totalLotsTracked", 0);
         }
     }
 
@@ -228,10 +228,10 @@ class AnalyticsServiceImplTest {
 
             Map<String, Object> report = analyticsService.generateDailyReport(10L);
 
-            assertThat(report.get("lotId")).isEqualTo(10L);
+            assertThat(report).containsEntry("lotId", 10L);
             assertThat(report.get("occupancyRate")).isNotNull();
             assertThat(report.get("peakHours")).isNotNull();
-            assertThat(report.get("todayActivityCount")).isEqualTo(5L);
+            assertThat(report).containsEntry("todayActivityCount", 5L);
         }
     }
 }
