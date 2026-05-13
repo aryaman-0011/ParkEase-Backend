@@ -1,8 +1,9 @@
-# ParkEase — Jenkins + SonarQube + Redis Docker Compose
+# ParkEase — Infrastructure Docker Compose
 # Start with: docker compose up -d
 # Jenkins UI:    http://localhost:9090 (admin)
 # SonarQube UI:  http://localhost:9000 (admin/admin)
 # Redis:         localhost:6379
+# RabbitMQ:      localhost:5672 (Management UI: http://localhost:15672 guest/guest)
 
 services:
 
@@ -49,12 +50,29 @@ services:
     networks:
       - parkease-ci
 
+  # ── RabbitMQ (used by notification-service for event-driven messaging) ──
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: parkease-rabbitmq
+    ports:
+      - "5672:5672"       # AMQP protocol
+      - "15672:15672"     # Management UI (guest/guest)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
+    networks:
+      - parkease-ci
+
 volumes:
   jenkins_home:
   sonarqube_data:
   sonarqube_logs:
   sonarqube_extensions:
   redis_data:
+  rabbitmq_data:
 
 networks:
   parkease-ci:
