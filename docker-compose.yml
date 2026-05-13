@@ -1,7 +1,8 @@
-# ParkEase — Jenkins + SonarQube Docker Compose
-# Start with: docker compose -f docker-compose-jenkins.yml up -d
-# Jenkins UI:    http://localhost:8080
+# ParkEase — Jenkins + SonarQube + Redis Docker Compose
+# Start with: docker compose up -d
+# Jenkins UI:    http://localhost:9090 (admin)
 # SonarQube UI:  http://localhost:9000 (admin/admin)
+# Redis:         localhost:6379
 
 services:
 
@@ -36,11 +37,24 @@ services:
     networks:
       - parkease-ci
 
+  # ── Redis (used by auth-service OTP, booking-service distributed locks) ──
+  redis:
+    image: redis:7-alpine
+    container_name: parkease-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - parkease-ci
+
 volumes:
   jenkins_home:
   sonarqube_data:
   sonarqube_logs:
   sonarqube_extensions:
+  redis_data:
 
 networks:
   parkease-ci:

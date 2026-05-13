@@ -11,7 +11,7 @@
 ### Step 1: Start Jenkins + SonarQube
 ```bash
 cd ParkingLot-Backend
-docker compose -f docker-compose-jenkins.yml up -d
+docker compose up -d
 ```
 
 Wait ~2 minutes for both services to boot up.
@@ -104,7 +104,7 @@ Go to: **Manage Jenkins → Tools → Maven installations**
 
 ## Shutting Down
 ```bash
-docker compose -f docker-compose-jenkins.yml down
+docker compose down
 ```
 
 ## Important Notes
