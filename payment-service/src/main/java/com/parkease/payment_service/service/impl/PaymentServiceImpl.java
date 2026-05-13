@@ -1,5 +1,6 @@
 package com.parkease.payment_service.service.impl;
 
+import com.parkease.payment_service.client.BookingServiceClient;
 import com.parkease.payment_service.dto.*;
 import com.parkease.payment_service.entity.Payment;
 import com.parkease.payment_service.enums.PaymentMethod;
@@ -17,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -29,20 +29,19 @@ import java.util.Map;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
-    private final RestTemplate restTemplate;
+    private final BookingServiceClient bookingServiceClient;
     private final RazorpayClient razorpayClient;
     private final String razorpayKeyId;
     private final String razorpayKeySecret;
 
-    private static final String BOOKING_SERVICE = "http://booking-service";
 
     public PaymentServiceImpl(PaymentRepository paymentRepository,
-                              RestTemplate restTemplate,
+                              BookingServiceClient bookingServiceClient,
                               RazorpayClient razorpayClient,
                               @Qualifier("razorpayKeyId") String razorpayKeyId,
                               @Qualifier("razorpayKeySecret") String razorpayKeySecret) {
         this.paymentRepository = paymentRepository;
-        this.restTemplate = restTemplate;
+        this.bookingServiceClient = bookingServiceClient;
         this.razorpayClient = razorpayClient;
         this.razorpayKeyId = razorpayKeyId;
         this.razorpayKeySecret = razorpayKeySecret;
@@ -210,10 +209,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public RevenueResponse getLotRevenue(Long lotId) {
         try {
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> bookings = restTemplate.getForObject(
-                    BOOKING_SERVICE + "/bookings/lot/" + lotId, List.class);
-
+            List<Map<String, Object>> bookings = bookingServiceClient.getBookingsByLot(lotId);
             if (bookings == null || bookings.isEmpty()) {
                 return RevenueResponse.builder().lotId(lotId).totalRevenue(0.0).totalPayments(0L).build();
             }

@@ -1,5 +1,6 @@
 package com.parkease.auth.service.impl;
 
+import com.parkease.auth.client.ParkingLotServiceClient;
 import com.parkease.auth.dto.AuthResponse;
 import com.parkease.auth.dto.ChangePasswordRequest;
 import com.parkease.auth.dto.ForgotPasswordRequest;
@@ -47,6 +48,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
+    private final ParkingLotServiceClient parkingLotServiceClient;
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final String USER_NOT_FOUND = "User not found";
@@ -158,11 +160,7 @@ public class AuthServiceImpl implements AuthService {
         // If the user is a MANAGER, delete their parking lots from the parkinglot-service
         if (user.getRole() == Role.MANAGER) {
             try {
-                org.springframework.web.client.RestClient.create()
-                        .delete()
-                        .uri("http://localhost:8084/lots/manager/{managerId}", user.getId())
-                        .retrieve()
-                        .toBodilessEntity();
+                parkingLotServiceClient.deleteAllLotsByManager(user.getId());
                 log.info("Deleted all parking lots for manager id={}", user.getId());
             } catch (Exception ex) {
                 log.warn("Failed to delete parking lots for manager id={}: {}", user.getId(), ex.getMessage());

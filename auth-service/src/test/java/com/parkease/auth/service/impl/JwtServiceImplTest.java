@@ -143,4 +143,24 @@ class JwtServiceImplTest {
             assertThat(jwtService.getRememberMeExpirationInSeconds()).isEqualTo(604800L);
         }
     }
+
+    @Nested
+    @DisplayName("getRemainingMillis")
+    class RemainingMillis {
+        @Test
+        @DisplayName("should return positive remaining millis for valid token")
+        void validTokenRemainingMillis() {
+            String token = jwtService.generateToken(user);
+
+            assertThat(jwtService.getRemainingMillis(token))
+                    .isPositive()
+                    .isLessThanOrEqualTo(EXPIRATION_MS);
+        }
+
+        @Test
+        @DisplayName("should return zero for invalid token")
+        void invalidTokenRemainingMillis() {
+            assertThat(jwtService.getRemainingMillis("not-a-jwt")).isZero();
+        }
+    }
 }

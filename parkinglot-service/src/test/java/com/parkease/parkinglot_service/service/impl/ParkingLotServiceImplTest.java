@@ -1,5 +1,6 @@
 package com.parkease.parkinglot_service.service.impl;
 
+import com.parkease.parkinglot_service.client.AuthServiceClient;
 import com.parkease.parkinglot_service.dto.CreateLotRequest;
 import com.parkease.parkinglot_service.dto.LotResponse;
 import com.parkease.parkinglot_service.dto.UpdateLotRequest;
@@ -32,6 +33,7 @@ class ParkingLotServiceImplTest {
 
     @Mock private ParkingLotRepository lotRepository;
     @Mock private NotificationEventProducer notificationProducer;
+    @Mock private AuthServiceClient authServiceClient;
     @InjectMocks private ParkingLotServiceImpl parkingLotService;
 
     private ParkingLot lot;

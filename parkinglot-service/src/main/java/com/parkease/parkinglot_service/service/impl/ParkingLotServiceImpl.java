@@ -1,5 +1,6 @@
 package com.parkease.parkinglot_service.service.impl;
 
+import com.parkease.parkinglot_service.client.AuthServiceClient;
 import com.parkease.parkinglot_service.dto.CreateLotRequest;
 import com.parkease.parkinglot_service.dto.LotResponse;
 import com.parkease.parkinglot_service.dto.UpdateLotRequest;
@@ -18,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 @Service
@@ -28,6 +28,7 @@ public class ParkingLotServiceImpl implements ParkingLotService {
 
     private final ParkingLotRepository lotRepository;
     private final NotificationEventProducer notificationProducer;
+    private final AuthServiceClient authServiceClient;
 
     /* ───── Manager operations ───── */
 
@@ -290,10 +291,7 @@ public class ParkingLotServiceImpl implements ParkingLotService {
     @SuppressWarnings("unchecked")
     private void notifyAdmins(ParkingLot lot) {
         try {
-            RestTemplate restTemplate = new RestTemplate();
-            Map<String, Object> response = restTemplate.getForObject(
-                    "http://localhost:8081/auth/internal/admin-ids", Map.class);
-
+            Map<String, Object> response = authServiceClient.getAdminIds();
             if (response != null && response.get("ids") != null) {
                 List<Integer> adminIds = (List<Integer>) response.get("ids");
                 for (Integer adminId : adminIds) {

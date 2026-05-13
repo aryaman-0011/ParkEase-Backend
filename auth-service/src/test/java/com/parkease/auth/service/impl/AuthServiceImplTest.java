@@ -1,5 +1,6 @@
 package com.parkease.auth.service.impl;
 
+import com.parkease.auth.client.ParkingLotServiceClient;
 import com.parkease.auth.dto.*;
 import com.parkease.auth.entity.User;
 import com.parkease.auth.enums.AuthProvider;
@@ -42,6 +43,7 @@ class AuthServiceImplTest {
     @Mock private JwtService jwtService;
     @Mock private AuthenticationManager authenticationManager;
     @Mock private EmailService emailService;
+    @Mock private ParkingLotServiceClient parkingLotServiceClient;
     @InjectMocks private AuthServiceImpl authService;
 
     private User driver;
@@ -140,6 +142,20 @@ class AuthServiceImplTest {
         }
 
         @Test
+        @DisplayName("should require non-blank business registration for manager")
+        void registerManagerBlankRegistration() {
+            RegisterRequest req = RegisterRequest.builder()
+                    .fullName("Mgr").email("mgr@test.com").password("pass1234")
+                    .role(Role.MANAGER).businessName("ParkCo").businessRegistration("   ").build();
+
+            when(userRepository.existsByEmailIgnoreCase("mgr@test.com")).thenReturn(false);
+
+            assertThatThrownBy(() -> authService.register(req))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("Business registration");
+        }
+
+        @Test
         @DisplayName("should default role to DRIVER when null")
         void registerDefaultRole() {
             RegisterRequest req = RegisterRequest.builder()
@@ -187,6 +203,27 @@ class AuthServiceImplTest {
             assertThat(response.getAccessToken()).isEqualTo("jwt-token");
             assertThat(response.getTokenType()).isEqualTo("Bearer");
             verify(emailService).sendLoginNotificationEmail(eq("john@test.com"), eq("John Driver"), anyString());
+        }
+
+        @Test
+        @DisplayName("should use remember-me expiration when requested")
+        void loginRememberMeSuccess() {
+            LoginRequest req = LoginRequest.builder()
+                    .email("john@test.com").password("password123").rememberMe(true).build();
+
+            Authentication auth = mock(Authentication.class);
+            when(auth.getName()).thenReturn("john@test.com");
+            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                    .thenReturn(auth);
+            when(userRepository.findByEmailIgnoreCase("john@test.com"))
+                    .thenReturn(Optional.of(driver));
+            when(jwtService.generateToken(driver, true)).thenReturn("remember-token");
+            when(jwtService.getRememberMeExpirationInSeconds()).thenReturn(604800L);
+
+            AuthResponse response = authService.login(req);
+
+            assertThat(response.getAccessToken()).isEqualTo("remember-token");
+            assertThat(response.getExpiresIn()).isEqualTo(604800L);
         }
 
         @Test
@@ -370,6 +407,44 @@ class AuthServiceImplTest {
                     .isInstanceOf(BadRequestException.class)
                     .hasMessageContaining("Admin");
         }
+
+        @Test
+        @DisplayName("should delete manager lots before deleting manager account")
+        void deleteManagerDeletesLots() {
+            when(userRepository.findByEmailIgnoreCase("jane@test.com"))
+                    .thenReturn(Optional.of(manager));
+
+            authService.deleteAccount("jane@test.com");
+
+            verify(parkingLotServiceClient).deleteAllLotsByManager(2L);
+            verify(redisOtpService).deleteAllForEmail("jane@test.com");
+            verify(userRepository).deleteUserById(2L);
+        }
+
+        @Test
+        @DisplayName("should continue manager deletion when lot cleanup fails")
+        void deleteManagerContinuesWhenLotCleanupFails() {
+            when(userRepository.findByEmailIgnoreCase("jane@test.com"))
+                    .thenReturn(Optional.of(manager));
+            doThrow(new RuntimeException("parkinglot unavailable"))
+                    .when(parkingLotServiceClient).deleteAllLotsByManager(2L);
+
+            authService.deleteAccount("jane@test.com");
+
+            verify(redisOtpService).deleteAllForEmail("jane@test.com");
+            verify(userRepository).deleteUserById(2L);
+        }
+
+        @Test
+        @DisplayName("should throw when deleting missing account")
+        void deleteMissingAccount() {
+            when(userRepository.findByEmailIgnoreCase("missing@test.com"))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> authService.deleteAccount("missing@test.com"))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("User not found");
+        }
     }
 
     @Nested
@@ -400,6 +475,17 @@ class AuthServiceImplTest {
 
             assertThatThrownBy(() -> authService.refreshToken("bad-token"))
                     .isInstanceOf(UnauthorizedException.class);
+        }
+
+        @Test
+        @DisplayName("should wrap token parsing errors")
+        void refreshMalformedToken() {
+            when(jwtService.extractUsername("malformed-token"))
+                    .thenThrow(new IllegalArgumentException("bad token"));
+
+            assertThatThrownBy(() -> authService.refreshToken("malformed-token"))
+                    .isInstanceOf(UnauthorizedException.class)
+                    .hasMessageContaining("invalid or expired");
         }
     }
 
@@ -449,6 +535,77 @@ class AuthServiceImplTest {
                     AuthProvider.GOOGLE, "gid", null, "Name", null, null))
                     .isInstanceOf(BadRequestException.class)
                     .hasMessageContaining("email");
+        }
+
+        @Test
+        @DisplayName("should use normalized email as display name when OAuth name is blank")
+        void blankNameFallsBackToEmail() {
+            when(userRepository.findByEmailIgnoreCase("google@test.com"))
+                    .thenReturn(Optional.empty());
+            when(userRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            User result = authService.upsertOAuthUser(
+                    AuthProvider.GOOGLE, "gid789", " Google@Test.com ", "   ", null, null);
+
+            assertThat(result.getEmail()).isEqualTo("google@test.com");
+            assertThat(result.getFullName()).isEqualTo("google@test.com");
+            assertThat(result.getRole()).isEqualTo(Role.DRIVER);
+        }
+    }
+
+    @Nested
+    @DisplayName("forgotPassword")
+    class ForgotPassword {
+        @Test
+        @DisplayName("should store Redis OTP and send email for local account")
+        void forgotPasswordSuccess() {
+            when(userRepository.findByEmailIgnoreCase("john@test.com"))
+                    .thenReturn(Optional.of(driver));
+            when(redisOtpService.isRateLimited("john@test.com")).thenReturn(false);
+
+            authService.forgotPassword(ForgotPasswordRequest.builder()
+                    .email(" John@Test.com ").build());
+
+            verify(redisOtpService).storeOtp(eq("john@test.com"), matches("\\d{6}"), anyInt());
+            verify(emailService).sendOtpEmail(eq("john@test.com"), matches("\\d{6}"));
+        }
+
+        @Test
+        @DisplayName("should reject password reset for social login accounts")
+        void forgotPasswordSocialAccount() {
+            driver.setProvider(AuthProvider.GOOGLE);
+            when(userRepository.findByEmailIgnoreCase("john@test.com"))
+                    .thenReturn(Optional.of(driver));
+
+            assertThatThrownBy(() -> authService.forgotPassword(ForgotPasswordRequest.builder()
+                    .email("john@test.com").build()))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("social-login");
+        }
+
+        @Test
+        @DisplayName("should rate limit repeated OTP requests")
+        void forgotPasswordRateLimited() {
+            when(userRepository.findByEmailIgnoreCase("john@test.com"))
+                    .thenReturn(Optional.of(driver));
+            when(redisOtpService.isRateLimited("john@test.com")).thenReturn(true);
+
+            assertThatThrownBy(() -> authService.forgotPassword(ForgotPasswordRequest.builder()
+                    .email("john@test.com").build()))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("wait 60 seconds");
+        }
+
+        @Test
+        @DisplayName("should throw when password reset account is missing")
+        void forgotPasswordMissingAccount() {
+            when(userRepository.findByEmailIgnoreCase("missing@test.com"))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> authService.forgotPassword(ForgotPasswordRequest.builder()
+                    .email("missing@test.com").build()))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("No account found");
         }
     }
 
@@ -508,6 +665,30 @@ class AuthServiceImplTest {
                     .email("john@test.com").otp("123456").newPassword("samepass").build()))
                     .isInstanceOf(BadRequestException.class)
                     .hasMessageContaining("different");
+        }
+
+        @Test
+        @DisplayName("should reject invalid reset OTP")
+        void resetInvalidOtp() {
+            when(redisOtpService.validateOtp("john@test.com", "000000")).thenReturn(false);
+
+            assertThatThrownBy(() -> authService.resetPassword(ResetPasswordRequest.builder()
+                    .email("john@test.com").otp("000000").newPassword("newpass123").build()))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("Invalid or expired OTP");
+        }
+
+        @Test
+        @DisplayName("should throw when reset account is missing")
+        void resetMissingAccount() {
+            when(redisOtpService.validateOtp("missing@test.com", "123456")).thenReturn(true);
+            when(userRepository.findByEmailIgnoreCase("missing@test.com"))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> authService.resetPassword(ResetPasswordRequest.builder()
+                    .email("missing@test.com").otp("123456").newPassword("newpass123").build()))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("User not found");
         }
     }
 }

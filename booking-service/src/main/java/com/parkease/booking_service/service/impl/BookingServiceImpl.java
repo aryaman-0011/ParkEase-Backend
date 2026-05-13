@@ -1,5 +1,7 @@
 package com.parkease.booking_service.service.impl;
 
+import com.parkease.booking_service.client.ParkingLotServiceClient;
+import com.parkease.booking_service.client.SpotServiceClient;
 import com.parkease.booking_service.dto.BookingResponse;
 import com.parkease.booking_service.dto.CreateBookingRequest;
 import com.parkease.booking_service.dto.ExtendBookingRequest;
@@ -15,8 +17,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import org.springframework.web.client.RestTemplate;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,20 +25,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
 // Core booking logic — handles time-slot based reservations with multi-vehicle support.
-// Communicates with spot-service (status changes) and parkinglot-service (pricing) via REST.
+// Communicates with spot-service (status changes) and parkinglot-service (pricing) via Feign.
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
-    private final RestTemplate restTemplate;
+    private final SpotServiceClient spotServiceClient;
+    private final ParkingLotServiceClient parkingLotServiceClient;
     private final NotificationEventProducer notificationProducer;
     private final org.springframework.integration.redis.util.RedisLockRegistry redisLockRegistry;
 
-    // Inter-service URLs (resolved via Eureka service discovery)
-    private static final String SPOT_SERVICE = "http://spot-service";
-    private static final String LOT_SERVICE = "http://parkinglot-service";
     // Statuses considered "active" for conflict checks and dashboard display
     private static final List<BookingStatus> ACTIVE_STATUSES =
             List.of(BookingStatus.RESERVED, BookingStatus.ACTIVE);
@@ -126,7 +124,7 @@ public class BookingServiceImpl implements BookingService {
         // Non-fatal because the spot might already be RESERVED by another time-slot user
         if (start.isBefore(now.plusMinutes(15))) {
             try {
-                restTemplate.put(SPOT_SERVICE + "/spots/" + request.getSpotId() + "/reserve", null);
+                spotServiceClient.reserveSpot(request.getSpotId());
             } catch (Exception e) {
                 log.warn("Spot reserve call failed (may already be reserved): {}", e.getMessage());
             }
@@ -273,7 +271,7 @@ public class BookingServiceImpl implements BookingService {
 
         // Tell spot-service to mark this spot as OCCUPIED
         try {
-            restTemplate.put(SPOT_SERVICE + "/spots/" + booking.getSpotId() + "/occupy", null);
+            spotServiceClient.occupySpot(booking.getSpotId());
         } catch (Exception e) {
             log.error("Failed to occupy spot: {}", e.getMessage());
             throw new BadRequestException("Could not update spot status.");
@@ -297,7 +295,7 @@ public class BookingServiceImpl implements BookingService {
 
         // Release the spot back to AVAILABLE in spot-service
         try {
-            restTemplate.put(SPOT_SERVICE + "/spots/" + booking.getSpotId() + "/release", null);
+            spotServiceClient.releaseSpot(booking.getSpotId());
         } catch (Exception e) {
             log.error("Failed to release spot: {}", e.getMessage());
             throw new BadRequestException("Could not release spot.");
@@ -327,7 +325,7 @@ public class BookingServiceImpl implements BookingService {
 
         // Release the spot (non-fatal if it fails — spot may have already been released)
         try {
-            restTemplate.put(SPOT_SERVICE + "/spots/" + booking.getSpotId() + "/release", null);
+            spotServiceClient.releaseSpot(booking.getSpotId());
         } catch (Exception e) {
             log.error("Failed to release spot on cancel: {}", e.getMessage());
         }
@@ -348,22 +346,22 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
     }
 
-    // Fetch spot details from spot-service via REST
+    // Fetch spot details from spot-service via Feign client
     @SuppressWarnings("unchecked")
     private Map<String, Object> fetchSpotData(Long spotId) {
         try {
-            return restTemplate.getForObject(SPOT_SERVICE + "/spots/" + spotId, Map.class);
+            return spotServiceClient.getSpotById(spotId);
         } catch (Exception e) {
             log.error("Failed to fetch spot details: {}", e.getMessage());
             throw new BadRequestException("Could not fetch spot details. Please try again.");
         }
     }
 
-    // Fetch lot details from parkinglot-service via REST (returns null on failure)
+    // Fetch lot details from parkinglot-service via Feign client (returns null on failure)
     @SuppressWarnings("unchecked")
     private Map<String, Object> fetchLotData(Long lotId) {
         try {
-            return restTemplate.getForObject(LOT_SERVICE + "/lots/" + lotId, Map.class);
+            return parkingLotServiceClient.getLotById(lotId);
         } catch (Exception e) {
             log.error("Failed to fetch lot details: {}", e.getMessage());
             return null;

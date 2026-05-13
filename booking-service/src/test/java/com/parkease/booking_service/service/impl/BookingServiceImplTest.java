@@ -1,5 +1,7 @@
 package com.parkease.booking_service.service.impl;
 
+import com.parkease.booking_service.client.ParkingLotServiceClient;
+import com.parkease.booking_service.client.SpotServiceClient;
 import com.parkease.booking_service.dto.BookingResponse;
 import com.parkease.booking_service.dto.CreateBookingRequest;
 import com.parkease.booking_service.dto.ExtendBookingRequest;
@@ -18,10 +20,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.integration.redis.util.RedisLockRegistry;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -33,7 +36,8 @@ import static org.mockito.Mockito.*;
 class BookingServiceImplTest {
 
     @Mock private BookingRepository bookingRepository;
-    @Mock private RestTemplate restTemplate;
+    @Mock private SpotServiceClient spotServiceClient;
+    @Mock private ParkingLotServiceClient parkingLotServiceClient;
     @Mock private NotificationEventProducer notificationProducer;
     @Mock private RedisLockRegistry redisLockRegistry;
     @Mock private org.springframework.integration.support.locks.DistributedLock mockLock;
@@ -81,6 +85,26 @@ class BookingServiceImplTest {
         return req;
     }
 
+    private Map<String, Object> spotData(String status, Double pricePerHour) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("status", status);
+        data.put("spotNumber", "A-01");
+        if (pricePerHour != null) {
+            data.put("pricePerHour", pricePerHour);
+        }
+        return data;
+    }
+
+    private Map<String, Object> lotData(Double pricePerHour, Long managerId) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("name", "Downtown Parking");
+        data.put("pricePerHour", pricePerHour);
+        if (managerId != null) {
+            data.put("managerId", managerId);
+        }
+        return data;
+    }
+
     private ExtendBookingRequest buildExtendRequest(LocalDateTime newEnd) {
         ExtendBookingRequest req = new ExtendBookingRequest();
         req.setNewEndTime(newEnd);
@@ -90,6 +114,75 @@ class BookingServiceImplTest {
     @Nested
     @DisplayName("createBooking")
     class CreateBooking {
+        @Test
+        @DisplayName("should create booking and reserve nearby spot")
+        void createSuccessReservesNearbySpot() {
+            CreateBookingRequest req = buildCreateRequest(10L, 100L, 200L,
+                    now.plusMinutes(10), now.plusHours(2));
+            req.setVehicleId(50L);
+            req.setVehiclePlate("MH12AB1234");
+
+            when(bookingRepository.findByVehicleIdAndStatusIn(eq(50L), anyList()))
+                    .thenReturn(List.of());
+            when(bookingRepository.findConflictingBookings(eq(100L), eq(req.getScheduledStartTime()),
+                    eq(req.getScheduledEndTime()))).thenReturn(List.of());
+            when(spotServiceClient.getSpotById(100L)).thenReturn(spotData("AVAILABLE", 45.0));
+            when(parkingLotServiceClient.getLotById(200L)).thenReturn(lotData(30.0, 88L));
+            when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> {
+                Booking booking = invocation.getArgument(0);
+                booking.setBookingId(10L);
+                return booking;
+            });
+
+            BookingResponse response = bookingService.createBooking(req);
+
+            assertThat(response.getBookingId()).isEqualTo(10L);
+            assertThat(response.getStatus()).isEqualTo(BookingStatus.RESERVED);
+            assertThat(response.getLotName()).isEqualTo("Downtown Parking");
+            assertThat(response.getSpotNumber()).isEqualTo("A-01");
+            assertThat(response.getPricePerHour()).isEqualTo(45.0);
+            verify(spotServiceClient).reserveSpot(100L);
+            verify(notificationProducer, times(2)).publish(any());
+            verify(mockLock).unlock();
+        }
+
+        @Test
+        @DisplayName("should use lot price when spot price missing")
+        void createUsesLotPriceFallback() {
+            CreateBookingRequest req = buildCreateRequest(10L, 100L, 200L,
+                    now.plusHours(1), now.plusHours(3));
+
+            when(bookingRepository.findConflictingBookings(eq(100L), eq(req.getScheduledStartTime()),
+                    eq(req.getScheduledEndTime()))).thenReturn(List.of());
+            when(spotServiceClient.getSpotById(100L)).thenReturn(spotData("AVAILABLE", null));
+            when(parkingLotServiceClient.getLotById(200L)).thenReturn(lotData(25.0, null));
+            when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            BookingResponse response = bookingService.createBooking(req);
+
+            assertThat(response.getPricePerHour()).isEqualTo(25.0);
+            verify(spotServiceClient, never()).reserveSpot(100L);
+            verify(notificationProducer).publish(any());
+        }
+
+        @Test
+        @DisplayName("should fall back when lot service fails")
+        void createFallsBackWhenLotServiceFails() {
+            CreateBookingRequest req = buildCreateRequest(10L, 100L, 200L,
+                    now.plusHours(1), now.plusHours(2));
+
+            when(bookingRepository.findConflictingBookings(eq(100L), eq(req.getScheduledStartTime()),
+                    eq(req.getScheduledEndTime()))).thenReturn(List.of());
+            when(spotServiceClient.getSpotById(100L)).thenReturn(spotData("AVAILABLE", 0.0));
+            when(parkingLotServiceClient.getLotById(200L)).thenThrow(new RuntimeException("lot down"));
+            when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            BookingResponse response = bookingService.createBooking(req);
+
+            assertThat(response.getLotName()).isEqualTo("Unknown Lot");
+            assertThat(response.getPricePerHour()).isZero();
+        }
+
         @Test
         @DisplayName("should reject when end time before start time")
         void endBeforeStart() {
@@ -125,6 +218,88 @@ class BookingServiceImplTest {
             assertThatThrownBy(() -> bookingService.createBooking(req))
                     .isInstanceOf(BadRequestException.class)
                     .hasMessageContaining("already has an active booking");
+        }
+
+        @Test
+        @DisplayName("should reject booking in the past")
+        void startInPast() {
+            CreateBookingRequest req = buildCreateRequest(10L, 100L, 200L,
+                    now.minusMinutes(10), now.plusHours(1));
+
+            assertThatThrownBy(() -> bookingService.createBooking(req))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("in the past");
+        }
+
+        @Test
+        @DisplayName("should reject overlapping spot booking")
+        void spotConflict() {
+            CreateBookingRequest req = buildCreateRequest(10L, 100L, 200L,
+                    now.plusHours(1), now.plusHours(3));
+            when(bookingRepository.findConflictingBookings(eq(100L), eq(req.getScheduledStartTime()),
+                    eq(req.getScheduledEndTime()))).thenReturn(List.of(reservedBooking));
+
+            assertThatThrownBy(() -> bookingService.createBooking(req))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("already booked");
+        }
+
+        @Test
+        @DisplayName("should reject immediate booking for occupied spot")
+        void occupiedSpotForImmediateBooking() {
+            CreateBookingRequest req = buildCreateRequest(10L, 100L, 200L,
+                    now.plusMinutes(2), now.plusHours(1));
+            when(bookingRepository.findConflictingBookings(eq(100L), eq(req.getScheduledStartTime()),
+                    eq(req.getScheduledEndTime()))).thenReturn(List.of());
+            when(spotServiceClient.getSpotById(100L)).thenReturn(spotData("OCCUPIED", 40.0));
+
+            assertThatThrownBy(() -> bookingService.createBooking(req))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("currently occupied");
+        }
+
+        @Test
+        @DisplayName("should reject when spot service lookup fails")
+        void spotLookupFailure() {
+            CreateBookingRequest req = buildCreateRequest(10L, 100L, 200L,
+                    now.plusHours(1), now.plusHours(2));
+            when(bookingRepository.findConflictingBookings(eq(100L), eq(req.getScheduledStartTime()),
+                    eq(req.getScheduledEndTime()))).thenReturn(List.of());
+            when(spotServiceClient.getSpotById(100L)).thenThrow(new RuntimeException("spot down"));
+
+            assertThatThrownBy(() -> bookingService.createBooking(req))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("Could not fetch spot details");
+        }
+
+        @Test
+        @DisplayName("should reject when distributed lock is unavailable")
+        void lockUnavailable() throws InterruptedException {
+            CreateBookingRequest req = buildCreateRequest(10L, 100L, 200L,
+                    now.plusHours(1), now.plusHours(2));
+            when(mockLock.tryLock(anyLong(), any(TimeUnit.class))).thenReturn(false);
+
+            assertThatThrownBy(() -> bookingService.createBooking(req))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("being booked by another user");
+
+            verify(mockLock, never()).unlock();
+        }
+
+        @Test
+        @DisplayName("should convert interrupted lock wait to bad request")
+        void lockInterrupted() throws InterruptedException {
+            CreateBookingRequest req = buildCreateRequest(10L, 100L, 200L,
+                    now.plusHours(1), now.plusHours(2));
+            when(mockLock.tryLock(anyLong(), any(TimeUnit.class)))
+                    .thenThrow(new InterruptedException("stop"));
+
+            assertThatThrownBy(() -> bookingService.createBooking(req))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("interrupted");
+
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+            Thread.interrupted();
         }
     }
 
@@ -165,6 +340,19 @@ class BookingServiceImplTest {
             assertThatThrownBy(() -> bookingService.extendBooking(1L, buildExtendRequest(now.plusHours(5))))
                     .isInstanceOf(BadRequestException.class)
                     .hasMessageContaining("RESERVED or ACTIVE");
+        }
+
+        @Test
+        @DisplayName("should reject when extension conflicts")
+        void extendConflict() {
+            LocalDateTime newEnd = reservedBooking.getScheduledEndTime().plusHours(1);
+            when(bookingRepository.findById(1L)).thenReturn(Optional.of(reservedBooking));
+            when(bookingRepository.findConflictingBookingsExcluding(eq(100L), eq(reservedBooking.getScheduledStartTime()),
+                    eq(newEnd), eq(1L))).thenReturn(List.of(activeBooking));
+
+            assertThatThrownBy(() -> bookingService.extendBooking(1L, buildExtendRequest(newEnd)))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("Cannot extend");
         }
     }
 
@@ -221,6 +409,28 @@ class BookingServiceImplTest {
     }
 
     @Nested
+    @DisplayName("lot and spot queries")
+    class LotAndSpotQueries {
+        @Test
+        @DisplayName("should return bookings by lot")
+        void byLot() {
+            when(bookingRepository.findByLotIdOrderByCreatedAtDesc(200L))
+                    .thenReturn(List.of(reservedBooking));
+
+            assertThat(bookingService.getBookingsByLot(200L)).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("should return future schedule for spot")
+        void spotSchedule() {
+            when(bookingRepository.findFutureBookingsForSpot(eq(100L), any(LocalDateTime.class)))
+                    .thenReturn(List.of(reservedBooking));
+
+            assertThat(bookingService.getSpotSchedule(100L)).hasSize(1);
+        }
+    }
+
+    @Nested
     @DisplayName("checkIn")
     class CheckIn {
         @Test
@@ -234,7 +444,7 @@ class BookingServiceImplTest {
 
             assertThat(response.getStatus()).isEqualTo(BookingStatus.ACTIVE);
             assertThat(reservedBooking.getStartTime()).isNotNull();
-            verify(restTemplate).put(contains("/occupy"), isNull());
+            verify(spotServiceClient).occupySpot(100L);
         }
 
         @Test
@@ -257,6 +467,18 @@ class BookingServiceImplTest {
                     .isInstanceOf(BadRequestException.class)
                     .hasMessageContaining("Too early");
         }
+
+        @Test
+        @DisplayName("should reject when spot cannot be occupied")
+        void occupySpotFails() {
+            reservedBooking.setScheduledStartTime(now.minusMinutes(5));
+            when(bookingRepository.findById(1L)).thenReturn(Optional.of(reservedBooking));
+            doThrow(new RuntimeException("spot down")).when(spotServiceClient).occupySpot(100L);
+
+            assertThatThrownBy(() -> bookingService.checkIn(1L))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("Could not update spot status");
+        }
     }
 
     @Nested
@@ -272,7 +494,7 @@ class BookingServiceImplTest {
 
             assertThat(response.getStatus()).isEqualTo(BookingStatus.COMPLETED);
             assertThat(response.getTotalCost()).isGreaterThan(0);
-            verify(restTemplate).put(contains("/release"), isNull());
+            verify(spotServiceClient).releaseSpot(100L);
         }
 
         @Test
@@ -283,6 +505,17 @@ class BookingServiceImplTest {
             assertThatThrownBy(() -> bookingService.checkOut(1L))
                     .isInstanceOf(BadRequestException.class)
                     .hasMessageContaining("ACTIVE");
+        }
+
+        @Test
+        @DisplayName("should reject when spot cannot be released")
+        void releaseSpotFails() {
+            when(bookingRepository.findById(2L)).thenReturn(Optional.of(activeBooking));
+            doThrow(new RuntimeException("spot down")).when(spotServiceClient).releaseSpot(100L);
+
+            assertThatThrownBy(() -> bookingService.checkOut(2L))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("Could not release spot");
         }
     }
 
@@ -309,6 +542,19 @@ class BookingServiceImplTest {
             assertThatThrownBy(() -> bookingService.cancelBooking(2L))
                     .isInstanceOf(BadRequestException.class)
                     .hasMessageContaining("RESERVED");
+        }
+
+        @Test
+        @DisplayName("should still cancel when release fails")
+        void releaseFailureStillCancels() {
+            when(bookingRepository.findById(1L)).thenReturn(Optional.of(reservedBooking));
+            doThrow(new RuntimeException("spot down")).when(spotServiceClient).releaseSpot(100L);
+            when(bookingRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            BookingResponse response = bookingService.cancelBooking(1L);
+
+            assertThat(response.getStatus()).isEqualTo(BookingStatus.CANCELLED);
+            assertThat(response.getTotalCost()).isZero();
         }
     }
 }

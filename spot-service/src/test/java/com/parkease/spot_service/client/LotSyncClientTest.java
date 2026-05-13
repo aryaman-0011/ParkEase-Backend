@@ -8,7 +8,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.client.RestTemplate;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -17,7 +16,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class LotSyncClientTest {
 
-    @Mock private RestTemplate restTemplate;
+    @Mock private ParkingLotServiceClient parkingLotServiceClient;
     @Mock private SpotRepository spotRepository;
     @InjectMocks private LotSyncClient lotSyncClient;
 
@@ -29,7 +28,7 @@ class LotSyncClientTest {
 
         lotSyncClient.syncCounts(10L);
 
-        verify(restTemplate).put(contains("/10/sync-spots?total=50&available=40"), isNull());
+        verify(parkingLotServiceClient).syncSpotCounts(10L, 50, 40);
     }
 
     @Test
@@ -38,7 +37,7 @@ class LotSyncClientTest {
         when(spotRepository.countByLotId(10L)).thenReturn(50L);
         when(spotRepository.countByLotIdAndStatus(10L, SpotStatus.AVAILABLE)).thenReturn(40L);
         doThrow(new RuntimeException("Connection refused"))
-                .when(restTemplate).put(anyString(), any());
+                .when(parkingLotServiceClient).syncSpotCounts(anyLong(), anyInt(), anyInt());
 
         // Should not throw — non-critical operation
         assertThatCode(() -> lotSyncClient.syncCounts(10L)).doesNotThrowAnyException();
@@ -52,6 +51,6 @@ class LotSyncClientTest {
 
         lotSyncClient.syncCounts(99L);
 
-        verify(restTemplate).put(contains("/99/sync-spots?total=0&available=0"), isNull());
+        verify(parkingLotServiceClient).syncSpotCounts(99L, 0, 0);
     }
 }

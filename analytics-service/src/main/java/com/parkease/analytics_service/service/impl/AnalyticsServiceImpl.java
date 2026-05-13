@@ -1,12 +1,13 @@
 package com.parkease.analytics_service.service.impl;
 
+import com.parkease.analytics_service.client.BookingServiceClient;
+import com.parkease.analytics_service.client.PaymentServiceClient;
 import com.parkease.analytics_service.entity.OccupancyLog;
 import com.parkease.analytics_service.repository.AnalyticsRepository;
 import com.parkease.analytics_service.service.AnalyticsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -20,7 +21,8 @@ import java.util.stream.Collectors;
 public class AnalyticsServiceImpl implements AnalyticsService {
 
     private final AnalyticsRepository analyticsRepository;
-    private final RestTemplate restTemplate;
+    private final PaymentServiceClient paymentServiceClient;
+    private final BookingServiceClient bookingServiceClient;
 
     private static final String LOT_ID = "lotId";
     private static final String REVENUE = "revenue";
@@ -85,9 +87,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     public Map<String, Object> getRevenueByLot(Long lotId) {
         Map<String, Object> result = new LinkedHashMap<>();
         try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> revenue = restTemplate.getForObject(
-                    "http://localhost:8087/payments/lot/{lotId}/revenue", Map.class, lotId);
+            Map<String, Object> revenue = paymentServiceClient.getLotRevenue(lotId);
             result.put(LOT_ID, lotId);
             result.put(REVENUE, revenue);
             log.info("Fetched revenue for lot {}", lotId);
@@ -134,9 +134,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     @Override
     public Double getAvgDuration(Long lotId) {
         try {
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> bookings = restTemplate.getForObject(
-                    "http://localhost:8086/bookings/lot/{lotId}", List.class, lotId);
+            List<Map<String, Object>> bookings = bookingServiceClient.getBookingsByLot(lotId);
             if (bookings == null || bookings.isEmpty()) return 0.0;
 
             double totalMinutes = 0;

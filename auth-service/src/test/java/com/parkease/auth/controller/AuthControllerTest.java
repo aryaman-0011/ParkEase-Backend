@@ -6,6 +6,7 @@ import com.parkease.auth.enums.Role;
 import com.parkease.auth.service.AuthService;
 import com.parkease.auth.service.JwtService;
 import com.parkease.auth.service.impl.TokenBlacklistService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -97,5 +98,12 @@ class AuthControllerTest {
     @Test void resetPassword() {
         doNothing().when(authService).resetPassword(any());
         assertEquals(HttpStatus.OK, controller.resetPassword(new ResetPasswordRequest()).getStatusCode());
+    }
+    @Test void loginWithGoogleRedirectsToOauthAuthorization() throws Exception {
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        controller.loginWithGoogle(response);
+
+        verify(response).sendRedirect("/oauth2/authorization/google");
     }
 }
