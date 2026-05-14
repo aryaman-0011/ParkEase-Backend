@@ -1,0 +1,180 @@
+server:
+  port: ${SERVER_PORT:${PORT:8080}}
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+          default-filters:
+            - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+          routes:
+            - id: auth-service
+              uri: lb://auth-service
+              predicates:
+                - Path=/auth/**,/oauth2/**,/login/oauth2/**,/profile-pics/**,/avatars/**
+
+            - id: vehicle-service
+              uri: lb://vehicle-service
+              predicates:
+                - Path=/vehicles/**
+
+            - id: parkinglot-service
+              uri: lb://parkinglot-service
+              predicates:
+                - Path=/lots/**
+
+            - id: spot-service
+              uri: lb://spot-service
+              predicates:
+                - Path=/spots/**
+
+            - id: booking-service
+              uri: lb://booking-service
+              predicates:
+                - Path=/bookings/**
+
+            - id: payment-service
+              uri: lb://payment-service
+              predicates:
+                - Path=/payments/**
+
+            - id: notification-service
+              uri: lb://notification-service
+              predicates:
+                - Path=/notifications/**
+
+            - id: analytics-service
+              uri: lb://analytics-service
+              predicates:
+                - Path=/analytics/**
+
+            # ── Swagger API-docs routes (rewrite path to forward /v3/api-docs to each service) ──
+            - id: auth-service-docs
+              uri: lb://auth-service
+              predicates:
+                - Path=/services/auth/**
+              filters:
+                - RewritePath=/services/auth/(?<remaining>.*), /$\{remaining}
+
+            - id: booking-service-docs
+              uri: lb://booking-service
+              predicates:
+                - Path=/services/booking/**
+              filters:
+                - RewritePath=/services/booking/(?<remaining>.*), /$\{remaining}
+
+            - id: parkinglot-service-docs
+              uri: lb://parkinglot-service
+              predicates:
+                - Path=/services/lots/**
+              filters:
+                - RewritePath=/services/lots/(?<remaining>.*), /$\{remaining}
+
+            - id: spot-service-docs
+              uri: lb://spot-service
+              predicates:
+                - Path=/services/spots/**
+              filters:
+                - RewritePath=/services/spots/(?<remaining>.*), /$\{remaining}
+
+            - id: payment-service-docs
+              uri: lb://payment-service
+              predicates:
+                - Path=/services/payments/**
+              filters:
+                - RewritePath=/services/payments/(?<remaining>.*), /$\{remaining}
+
+            - id: vehicle-service-docs
+              uri: lb://vehicle-service
+              predicates:
+                - Path=/services/vehicles/**
+              filters:
+                - RewritePath=/services/vehicles/(?<remaining>.*), /$\{remaining}
+
+            - id: notification-service-docs
+              uri: lb://notification-service
+              predicates:
+                - Path=/services/notifications/**
+              filters:
+                - RewritePath=/services/notifications/(?<remaining>.*), /$\{remaining}
+
+            - id: analytics-service-docs
+              uri: lb://analytics-service
+              predicates:
+                - Path=/services/analytics/**
+              filters:
+                - RewritePath=/services/analytics/(?<remaining>.*), /$\{remaining}
+
+# ── Springdoc Swagger UI aggregation at gateway ──
+springdoc:
+  swagger-ui:
+    urls:
+      - name: Auth Service
+        url: /services/auth/v3/api-docs
+      - name: Booking Service
+        url: /services/booking/v3/api-docs
+      - name: Parking Lot Service
+        url: /services/lots/v3/api-docs
+      - name: Spot Service
+        url: /services/spots/v3/api-docs
+      - name: Payment Service
+        url: /services/payments/v3/api-docs
+      - name: Vehicle Service
+        url: /services/vehicles/v3/api-docs
+      - name: Notification Service
+        url: /services/notifications/v3/api-docs
+      - name: Analytics Service
+        url: /services/analytics/v3/api-docs
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:${RAILWAY_PRIVATE_DOMAIN:localhost}}
+    non-secure-port: ${SERVER_PORT:${PORT:8080}}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      access: unrestricted
+
+logging:
+  level:
+    org.springframework.cloud.gateway: WARN
+    reactor.netty.http.client: WARN
+
+# Must match auth-service's app.jwt.secret for gateway-level JWT validation
+app:
+  jwt:
+    secret: ${JWT_SECRET:U29tZVN1cGVyU2VjdXJlQmFzZTY0RW5jb2RlZEtleUZvclBhcmsxMjM0NTY3ODkwMTIzNDU2Nzg5MA==}
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:4200}

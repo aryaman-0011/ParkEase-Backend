@@ -1,14 +1,14 @@
 server:
-  port: ${SERVER_PORT:${PORT:8090}}
+  port: ${SERVER_PORT:${PORT:8084}}
   forward-headers-strategy: framework
 
 spring:
   application:
-    name: analytics-service
+    name: parkinglot-service
   datasource:
-    url: ${ANALYTICS_DB_URL:jdbc:mysql://localhost:3306/parkease_analytics?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${ANALYTICS_DB_USERNAME:root}
-    password: ${ANALYTICS_DB_PASSWORD:}
+    url: ${LOT_DB_URL:jdbc:mysql://localhost:3306/parkease_lots?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${LOT_DB_USERNAME:root}
+    password: ${LOT_DB_PASSWORD:}
   jpa:
     hibernate:
       ddl-auto: update
@@ -17,6 +17,11 @@ spring:
       hibernate:
         format_sql: true
     show-sql: false
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
 
 management:
   endpoints:
@@ -34,4 +39,4 @@ eureka:
   instance:
     prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
     hostname: ${EUREKA_INSTANCE_HOSTNAME:${RAILWAY_PRIVATE_DOMAIN:localhost}}
-    non-secure-port: ${SERVER_PORT:${PORT:8090}}
+    non-secure-port: ${SERVER_PORT:${PORT:8084}}

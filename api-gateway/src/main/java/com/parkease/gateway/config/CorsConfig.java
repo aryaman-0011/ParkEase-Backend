@@ -1,5 +1,8 @@
 package com.parkease.gateway.config;
 
+import java.util.Arrays;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -24,6 +27,9 @@ public class CorsConfig {
     private static final String ALLOWED_METHODS =
             "GET, POST, PUT, PATCH, DELETE, OPTIONS";
 
+    @Value("${app.cors.allowed-origins:http://localhost:4200}")
+    private String allowedOrigins = "http://localhost:4200";
+
     @Bean
     @Order(Ordered.HIGHEST_PRECEDENCE) // Run before ALL other filters
     public WebFilter corsFilter() {
@@ -36,8 +42,7 @@ public class CorsConfig {
                 return chain.filter(exchange);
             }
 
-            // Only allow localhost origins (development mode)
-            if (!origin.matches("http://localhost:\\d+")) {
+            if (!isAllowedOrigin(origin)) {
                 return chain.filter(exchange);
             }
 
@@ -68,5 +73,15 @@ public class CorsConfig {
 
             return chain.filter(exchange);
         };
+    }
+
+    private boolean isAllowedOrigin(String origin) {
+        if (origin.matches("http://localhost:\\d+") || origin.matches("http://127\\.0\\.0\\.1:\\d+")) {
+            return true;
+        }
+        return Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(allowedOrigin -> !allowedOrigin.isEmpty())
+                .anyMatch(origin::equals);
     }
 }

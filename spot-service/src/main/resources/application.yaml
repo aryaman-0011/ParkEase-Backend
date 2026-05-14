@@ -1,14 +1,14 @@
 server:
-  port: ${SERVER_PORT:${PORT:8090}}
+  port: ${SERVER_PORT:${PORT:8085}}
   forward-headers-strategy: framework
 
 spring:
   application:
-    name: analytics-service
+    name: spot-service
   datasource:
-    url: ${ANALYTICS_DB_URL:jdbc:mysql://localhost:3306/parkease_analytics?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${ANALYTICS_DB_USERNAME:root}
-    password: ${ANALYTICS_DB_PASSWORD:}
+    url: ${SPOT_DB_URL:jdbc:mysql://localhost:3306/parkease_spots?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${SPOT_DB_USERNAME:root}
+    password: ${SPOT_DB_PASSWORD:}
   jpa:
     hibernate:
       ddl-auto: update
@@ -17,6 +17,14 @@ spring:
       hibernate:
         format_sql: true
     show-sql: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  cache:
+    type: redis
+    redis:
+      time-to-live: 120000
 
 management:
   endpoints:
@@ -34,4 +42,4 @@ eureka:
   instance:
     prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
     hostname: ${EUREKA_INSTANCE_HOSTNAME:${RAILWAY_PRIVATE_DOMAIN:localhost}}
-    non-secure-port: ${SERVER_PORT:${PORT:8090}}
+    non-secure-port: ${SERVER_PORT:${PORT:8085}}

@@ -1,14 +1,14 @@
 server:
-  port: ${SERVER_PORT:${PORT:8090}}
+  port: ${SERVER_PORT:${PORT:8088}}
   forward-headers-strategy: framework
 
 spring:
   application:
-    name: analytics-service
+    name: vehicle-service
   datasource:
-    url: ${ANALYTICS_DB_URL:jdbc:mysql://localhost:3306/parkease_analytics?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${ANALYTICS_DB_USERNAME:root}
-    password: ${ANALYTICS_DB_PASSWORD:}
+    url: ${VEHICLE_DB_URL:jdbc:mysql://localhost:3306/parkease_vehicles?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${VEHICLE_DB_USERNAME:root}
+    password: ${VEHICLE_DB_PASSWORD:}
   jpa:
     hibernate:
       ddl-auto: update
@@ -34,4 +34,4 @@ eureka:
   instance:
     prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
     hostname: ${EUREKA_INSTANCE_HOSTNAME:${RAILWAY_PRIVATE_DOMAIN:localhost}}
-    non-secure-port: ${SERVER_PORT:${PORT:8090}}
+    non-secure-port: ${SERVER_PORT:${PORT:8088}}

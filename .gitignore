@@ -13,7 +13,6 @@ admin-server/mvnw
 admin-server/mvnw.cmd
 admin-server/target
 admin-server/.factorypath
-admin-server/src/main/resources/application.yaml
 admin-server/.gitignore
 admin-server/bin
 
@@ -30,7 +29,6 @@ api-gateway/mvnw.cmd
 api-gateway/target
 api-gateway/.factorypath
 api-gateway/.gitignore
-api-gateway/src/main/resources/application.yaml
 api-gateway/bin
 
 
@@ -46,7 +44,6 @@ service-registry/mvnw.cmd
 service-registry/target
 service-registry/.factorypath
 service-registry/.gitignore
-service-registry/src/main/resources/application.yaml
 service-registry/bin
 
 ### STS for auth-service###
@@ -61,7 +58,6 @@ auth-service/mvnw.cmd
 auth-service/target
 auth-service/.factorypath
 auth-service/.gitignore
-auth-service/src/main/resources/application.yaml
 auth-service/bin
 auth-service/src/main/resources/application-local-oauth.example.yaml
 
@@ -77,7 +73,6 @@ parkinglot-service/mvnw.cmd
 parkinglot-service/target
 parkinglot-service/.factorypath
 parkinglot-service/.gitignore
-parkinglot-service/src/main/resources/application.yaml
 parkinglot-service/bin
 
 ### STS for spot-service###
@@ -92,7 +87,6 @@ spot-service/mvnw.cmd
 spot-service/target
 spot-service/.factorypath
 spot-service/.gitignore
-spot-service/src/main/resources/application.yaml
 spot-service/bin
 
 ### STS for booking-service###
@@ -107,7 +101,6 @@ booking-service/mvnw.cmd
 booking-service/target
 booking-service/.factorypath
 booking-service/.gitignore
-booking-service/src/main/resources/application.yaml
 booking-service/bin
 
 ### STS for payment-service###
@@ -122,7 +115,6 @@ payment-service/mvnw.cmd
 payment-service/target
 payment-service/.factorypath
 payment-service/.gitignore
-payment-service/src/main/resources/application.yaml
 payment-service/bin
 
 ### STS for vehicle-service###
@@ -137,5 +129,4 @@ vehicle-service/mvnw.cmd
 vehicle-service/target
 vehicle-service/.factorypath
 vehicle-service/.gitignore
-vehicle-service/src/main/resources/application.yaml
 vehicle-service/bin

@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: service-registry
+
+server:
+  port: ${SERVER_PORT:${PORT:8761}}
+
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.netflix.eureka: OFF
+    com.netflix.discovery: OFF
