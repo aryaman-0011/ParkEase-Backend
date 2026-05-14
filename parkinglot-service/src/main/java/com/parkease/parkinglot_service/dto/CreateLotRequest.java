@@ -25,14 +25,17 @@ public class CreateLotRequest {
 
     @NotBlank(message = "Lot name is required")
     @Size(max = 150, message = "Name must not exceed 150 characters")
+    @Pattern(regexp = "^[A-Za-z0-9][A-Za-z0-9\\s\\-.,()]{0,148}$", message = "Lot name contains invalid characters")
     private String name;
 
     @NotBlank(message = "Address is required")
-    @Size(max = 300, message = "Address must not exceed 300 characters")
+    @Size(min = 5, max = 300, message = "Address must be 5-300 characters")
+    @Pattern(regexp = "^[A-Za-z0-9#][A-Za-z0-9\\s,.\\-/#()]{3,298}$", message = "Address contains invalid characters")
     private String address;
 
     @NotBlank(message = "City is required")
-    @Size(max = 100, message = "City must not exceed 100 characters")
+    @Size(min = 2, max = 100, message = "City must be 2-100 characters")
+    @Pattern(regexp = "^[A-Za-z][A-Za-z\\s\\-]{0,98}$", message = "City must contain only letters, spaces, and hyphens")
     private String city;
 
     @Size(max = 100, message = "State must not exceed 100 characters")
