@@ -8,7 +8,7 @@ spring:
   datasource:
     url: ${AUTH_DB_URL:jdbc:mysql://localhost:3306/parkease_auth?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${AUTH_DB_USERNAME:root}
-    password: ${AUTH_DB_PASSWORD:}
+    password: ${AUTH_DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
@@ -29,8 +29,8 @@ spring:
       client:
         registration:
           google:
-            client-id: ${GOOGLE_CLIENT_ID:}
-            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
             scope:
               - openid
               - profile
@@ -39,8 +39,8 @@ spring:
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
@@ -64,7 +64,7 @@ management:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:U29tZVN1cGVyU2VjdXJlQmFzZTY0RW5jb2RlZEtleUZvclBhcmsxMjM0NTY3ODkwMTIzNDU2Nzg5MA==}
+    secret: ${JWT_SECRET}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
     remember-me-expiration-ms: ${JWT_REMEMBER_ME_EXPIRATION_MS:604800000}
   oauth2:

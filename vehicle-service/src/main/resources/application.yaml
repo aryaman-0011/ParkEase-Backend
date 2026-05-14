@@ -8,7 +8,7 @@ spring:
   datasource:
     url: ${VEHICLE_DB_URL:jdbc:mysql://localhost:3306/parkease_vehicles?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${VEHICLE_DB_USERNAME:root}
-    password: ${VEHICLE_DB_PASSWORD:}
+    password: ${VEHICLE_DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update

@@ -8,7 +8,7 @@ spring:
   datasource:
     url: ${PAYMENT_DB_URL:jdbc:mysql://localhost:3306/parkease_payments?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${PAYMENT_DB_USERNAME:root}
-    password: ${PAYMENT_DB_PASSWORD:}
+    password: ${PAYMENT_DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
@@ -38,5 +38,5 @@ eureka:
 
 # Razorpay configuration
 razorpay:
-  key-id: ${RAZORPAY_KEY_ID:}
-  key-secret: ${RAZORPAY_KEY_SECRET:}
+  key-id: ${RAZORPAY_KEY_ID}
+  key-secret: ${RAZORPAY_KEY_SECRET}

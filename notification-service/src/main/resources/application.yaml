@@ -8,7 +8,7 @@ spring:
   datasource:
     url: ${NOTIF_DB_URL:jdbc:mysql://localhost:3306/parkease_notifications?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${NOTIF_DB_USERNAME:root}
-    password: ${NOTIF_DB_PASSWORD:}
+    password: ${NOTIF_DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
@@ -17,13 +17,13 @@ spring:
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true

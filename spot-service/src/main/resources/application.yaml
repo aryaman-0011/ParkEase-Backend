@@ -8,7 +8,7 @@ spring:
   datasource:
     url: ${SPOT_DB_URL:jdbc:mysql://localhost:3306/parkease_spots?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
     username: ${SPOT_DB_USERNAME:root}
-    password: ${SPOT_DB_PASSWORD:}
+    password: ${SPOT_DB_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: update
