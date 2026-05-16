@@ -170,7 +170,10 @@ pipeline {
 
         stage('Deploy Backend') {
             when {
-                branch 'feature/report-service'
+                expression {
+                    return env.BRANCH_NAME == 'feature/report-service' ||
+                           env.GIT_BRANCH == 'origin/feature/report-service'
+                }
             }
             steps {
                 script {
@@ -238,7 +241,10 @@ pipeline {
 
         stage('Deploy Frontend') {
             when {
-                branch 'feature/report-service'
+                expression {
+                    return env.BRANCH_NAME == 'feature/report-service' ||
+                           env.GIT_BRANCH == 'origin/feature/report-service'
+                }
             }
             steps {
                 sshagent(['ec2-ssh-key']) {
