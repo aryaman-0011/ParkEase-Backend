@@ -252,9 +252,9 @@ pipeline {
                         ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} \
                         'cd /opt/parkease/parkease-frontend && \
                          git pull origin feature/report-service-frontend && \
-                         export API_URL="http://\$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)" && \
+                         export API_URL="http://13.234.116.108/api" && \
                          node scripts/write-env.js && \
-                         npm ci && \
+                         npm install && \
                          npx ng build --configuration=production && \
                          sudo rm -rf /var/www/parkease/* && \
                          sudo cp -r dist/parkease-frontend/browser/* /var/www/parkease/ && \
