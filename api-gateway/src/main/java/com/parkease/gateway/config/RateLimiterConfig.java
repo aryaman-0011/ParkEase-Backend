@@ -4,6 +4,8 @@ import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import reactor.core.publisher.Mono;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 
 /**
  * Rate limiting configuration for the API gateway.
@@ -15,10 +17,19 @@ public class RateLimiterConfig {
 
     @Bean
     public KeyResolver ipKeyResolver() {
-        return exchange -> Mono.just(
-                exchange.getRequest().getRemoteAddress() != null
-                        ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
-                        : "unknown"
-        );
+        return exchange -> {
+            String forwardedFor = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+            if (forwardedFor != null && !forwardedFor.isBlank()) {
+                return Mono.just(forwardedFor.split(",")[0].trim());
+            }
+
+            InetSocketAddress remoteAddress = exchange.getRequest().getRemoteAddress();
+            if (remoteAddress == null) {
+                return Mono.just("unknown");
+            }
+
+            InetAddress address = remoteAddress.getAddress();
+            return Mono.just(address != null ? address.getHostAddress() : remoteAddress.getHostString());
+        };
     }
 }

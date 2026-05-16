@@ -1,18 +1,25 @@
 // ParkEase CI/CD Pipeline
-// Builds, tests, and packages all microservices automatically.
+// Builds, tests, packages, and deploys all microservices automatically.
 
 pipeline {
     agent any
 
     environment {
-        MAVEN_HOME = "${WORKSPACE}/maven"
-        PATH       = "${MAVEN_HOME}/bin:${env.PATH}"
+        MAVEN_HOME  = "${WORKSPACE}/maven"
+        PATH        = "${MAVEN_HOME}/bin:${env.PATH}"
+        DEPLOY_HOST = '172.17.0.1'   // Docker bridge gateway → EC2 host
+        DEPLOY_USER = 'ubuntu'
+        DEPLOY_DIR  = '/opt/parkease/jars'
     }
 
     options {
         timestamps()
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 45, unit: 'MINUTES')
         buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    parameters {
+        booleanParam(name: 'RUN_SONAR', defaultValue: false, description: 'Run SonarQube analysis')
     }
 
     stages {
@@ -41,6 +48,8 @@ pipeline {
             steps {
                 script {
                     def services = [
+                        'service-registry',
+                        'admin-server',
                         'api-gateway',
                         'auth-service',
                         'booking-service',
@@ -92,6 +101,9 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
+            when {
+                expression { return params.RUN_SONAR }
+            }
             steps {
                 withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
                     script {
@@ -127,6 +139,8 @@ pipeline {
             steps {
                 script {
                     def services = [
+                        'service-registry',
+                        'admin-server',
                         'api-gateway',
                         'auth-service',
                         'booking-service',
@@ -150,6 +164,96 @@ pipeline {
                     archiveArtifacts artifacts: '**/target/*.jar',
                                      fingerprint: true,
                                      allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Deploy Backend') {
+            when {
+                branch 'feature/report-service'
+            }
+            steps {
+                script {
+                    def services = [
+                        'service-registry',
+                        'admin-server',
+                        'api-gateway',
+                        'auth-service',
+                        'booking-service',
+                        'parkinglot-service',
+                        'spot-service',
+                        'vehicle-service',
+                        'payment-service',
+                        'notification-service',
+                        'analytics-service'
+                    ]
+
+                    echo '=== Copying JARs to deploy directory ==='
+                    for (svc in services) {
+                        sh "cp ${svc}/target/*.jar ${DEPLOY_DIR}/${svc}.jar"
+                    }
+
+                    echo '=== Restarting services on EC2 ==='
+                    sshagent(['ec2-ssh-key']) {
+                        // Stop all services (reverse order)
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} \
+                            'for svc in analytics-service notification-service payment-service vehicle-service spot-service parkinglot-service booking-service auth-service api-gateway admin-server service-registry; do
+                                sudo systemctl stop parkease@\${svc} 2>/dev/null || true
+                            done'
+                        """
+
+                        // Start Eureka first
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} \
+                            'sudo systemctl start parkease@service-registry && echo "Waiting for Eureka..." && sleep 20'
+                        """
+
+                        // Start infrastructure
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} \
+                            'sudo systemctl start parkease@admin-server && sudo systemctl start parkease@api-gateway && sleep 10'
+                        """
+
+                        // Start business services
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} \
+                            'for svc in auth-service booking-service parkinglot-service spot-service vehicle-service payment-service notification-service analytics-service; do
+                                sudo systemctl start parkease@\${svc}
+                                sleep 3
+                            done'
+                        """
+
+                        // Health check
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} \
+                            'echo "=== Service Status ===" && for svc in service-registry admin-server api-gateway auth-service booking-service parkinglot-service spot-service vehicle-service payment-service notification-service analytics-service; do
+                                echo -n "parkease@\${svc}: " && systemctl is-active parkease@\${svc}
+                            done'
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deploy Frontend') {
+            when {
+                branch 'feature/report-service'
+            }
+            steps {
+                sshagent(['ec2-ssh-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} \
+                        'cd /opt/parkease/parkease-frontend && \
+                         git pull origin feature/report-service-frontend && \
+                         export API_URL="http://\$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)" && \
+                         node scripts/write-env.js && \
+                         npm ci && \
+                         npx ng build --configuration=production && \
+                         sudo rm -rf /var/www/parkease/* && \
+                         sudo cp -r dist/parkease-frontend/browser/* /var/www/parkease/ && \
+                         echo "Frontend deployed successfully"'
+                    """
                 }
             }
         }

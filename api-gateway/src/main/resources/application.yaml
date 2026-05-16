@@ -153,7 +153,7 @@ eureka:
     fetch-registry: true
   instance:
     prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:false}
-    hostname: ${EUREKA_INSTANCE_HOSTNAME:${RAILWAY_PRIVATE_DOMAIN:localhost}}
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
     non-secure-port: ${SERVER_PORT:${PORT:8080}}
 
 management:
